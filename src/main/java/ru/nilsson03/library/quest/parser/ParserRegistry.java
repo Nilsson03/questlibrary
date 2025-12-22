@@ -26,12 +26,15 @@ public abstract class ParserRegistry<P extends Parser<O>, O> {
         Objects.requireNonNull(registerType, "registerType cannot be null");
         Objects.requireNonNull(parser, "parser cannot be null");
 
-        String parserType = pluginName + ":" + registerType;
-        if (parsers.containsKey(parserType)) {
+        String namespacedKey = pluginName + ":" + registerType;
+        if (parsers.containsKey(namespacedKey)) {
             throw new IllegalStateException(
-                    "Parser for register type " + parserType + " is already registered!");
+                    "Parser for register type " + namespacedKey + " is already registered!");
         }
-        parsers.put(parserType, parser);
+
+        
+        parsers.put(namespacedKey, parser);
+        parsers.putIfAbsent(registerType, parser);
     }
 
     /**
@@ -64,6 +67,22 @@ public abstract class ParserRegistry<P extends Parser<O>, O> {
                     "Couldn't get the parser using the " + registerType + " key");
         }
         return parsers.get(registerType);
+    }
+
+    /**
+     * Получение парсера с учётом имени плагина. Сначала ищем по pluginName:registerType,
+     * если не найден — используем короткий ключ.
+     */
+    public P getParser(String pluginName, String registerType) {
+        Objects.requireNonNull(pluginName, "pluginName cannot be null");
+        Objects.requireNonNull(registerType, "registerType cannot be null");
+
+        String namespacedKey = pluginName + ":" + registerType;
+        if (parsers.containsKey(namespacedKey)) {
+            return parsers.get(namespacedKey);
+        }
+
+        return getParser(registerType);
     }
 
     /**
