@@ -3,8 +3,8 @@ package ru.nilsson03.library.quest.storage;
 import com.google.common.base.Preconditions;
 import org.bukkit.plugin.Plugin;
 import ru.nilsson03.library.bukkit.file.FileHelper;
+import ru.nilsson03.library.bukkit.util.Namespace;
 import ru.nilsson03.library.quest.core.Quest;
-import ru.nilsson03.library.quest.namespace.QuestNamespace;
 import ru.nilsson03.library.quest.storage.loader.QuestLoader;
 
 import java.io.File;
@@ -52,7 +52,7 @@ public class QuestStorage {
      * @param key Уникальный ключ квеста.
      * @throws IllegalArgumentException если квест не найден.
      */
-    public void removeQuestOrThrow(final QuestNamespace key) {
+    public void removeQuestOrThrow(final Namespace key) {
         Preconditions.checkArgument(key != null, "Quest key cannot be null");
 
         List<Quest> matchingQuests = quests.stream()
@@ -80,7 +80,7 @@ public class QuestStorage {
      * @param key Уникальный ключ квеста.
      * @return Найденный квест или null, если квест не найден.
      */
-    protected Quest getQuestByUniqueKey(final QuestNamespace key) {
+    protected Quest getQuestByUniqueKey(final Namespace key) {
         List<Quest> matchingQuests = quests.stream()
                                            .filter(quest -> key.equals(quest.questUniqueKey()))
                                            .toList();
@@ -104,7 +104,7 @@ public class QuestStorage {
      * @throws IllegalArgumentException если квест не найден.
      */
     public Quest getQuestByUniqueKeyOrThrow(final String key) {
-        QuestNamespace questNamespace = QuestNamespace.of(key);
+        Namespace questNamespace = Namespace.of(plugin.getName(), key);
         Quest quest = getQuestByUniqueKey(questNamespace);
         Preconditions.checkArgument(quest != null,
                                     "No quest found with key: " + key + " in plugin: " + plugin.getName());
