@@ -11,8 +11,6 @@ import ru.nilsson03.library.quest.parser.Parser;
 import ru.nilsson03.library.quest.quest.simple.BaseQuest;
 import ru.nilsson03.library.quest.storage.QuestStorage;
 import ru.nilsson03.library.quest.user.data.QuestUserData;
-import ru.nilsson03.library.quest.user.storage.QuestUsersStorage;
-
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
@@ -21,18 +19,19 @@ public class BaseProgressParser implements Parser<QuestProgress> {
 
     private final ObjectiveGoalFactoryRegistry objectiveGoalRegistry;
     private final QuestStorage questStorage;
-    private final QuestUsersStorage questUsersStorage;
 
     public BaseProgressParser(
-            QuestStorage questStorage, ObjectiveGoalFactoryRegistry objectiveGoalRegistry,
-            QuestUsersStorage questUsersStorage) {
+            QuestStorage questStorage, ObjectiveGoalFactoryRegistry objectiveGoalRegistry) {
         this.questStorage = questStorage;
         this.objectiveGoalRegistry = objectiveGoalRegistry;
-        this.questUsersStorage = questUsersStorage;
     }
 
     @Override
     public QuestProgress parse(ConfigurationSection section) throws IllegalArgumentException, NullPointerException {
+        throw new UnsupportedOperationException("Use parse(ConfigurationSection, QuestUserData) instead");
+    }
+
+    public QuestProgress parse(ConfigurationSection section, QuestUserData user) throws IllegalArgumentException, NullPointerException {
 
         String questId = section.getString("quest_id");
 
@@ -45,7 +44,9 @@ public class BaseProgressParser implements Parser<QuestProgress> {
         UUID userId = UUID.fromString(Objects.requireNonNull(section.getString("user_id"),
                                                              "User id in progress section is null. Quest id is " + questId + "."));
 
-        QuestUserData user = questUsersStorage.getQuestUserData(userId);
+        if (!user.uuid().equals(userId)) {
+            throw new IllegalArgumentException("User UUID mismatch: expected " + userId + ", got " + user.uuid());
+        }
 
         String objectiveId = section.getString("objective_id");
 

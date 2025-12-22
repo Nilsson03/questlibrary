@@ -2,9 +2,10 @@ package ru.nilsson03.library.quest.objective.progress.impl;
 
 import com.google.common.base.Preconditions;
 import org.bukkit.Bukkit;
-import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
+
 import ru.nilsson03.library.quest.core.Quest;
+import ru.nilsson03.library.quest.core.event.UserQuestProgressEvent;
 import ru.nilsson03.library.quest.objective.Objective;
 import ru.nilsson03.library.quest.objective.goal.Goal;
 import ru.nilsson03.library.quest.objective.progress.QuestProgress;
@@ -30,8 +31,8 @@ public class BaseQuestProgress implements QuestProgress {
      */
     public BaseQuestProgress(QuestUserData user, Quest quest, Objective objective) {
         this(user, quest, objective, objective.goals()
-                                              .stream()
-                                              .collect(Collectors.toMap(Function.identity(), goal -> 0L)));
+                .stream()
+                .collect(Collectors.toMap(Function.identity(), goal -> 0L)));
     }
 
     /**
@@ -75,16 +76,24 @@ public class BaseQuestProgress implements QuestProgress {
             long requiredProgress = objective.getRequiredProgress(goal);
             long currentProgress = getValue(goal);
 
-            if (currentProgress + progress > requiredProgress) {
-                progress = requiredProgress - currentProgress;
+            long newProgress = currentProgress + progress;
+            if (newProgress > requiredProgress) {
+                newProgress = requiredProgress;
+            }
+
+            UserQuestProgressEvent event = new UserQuestProgressEvent(user, quest, objective, goal, currentProgress, newProgress);
+            Bukkit.getPluginManager()
+                  .callEvent(event);
+            if (event.isCancelled()) {
+                return;
             }
 
             try {
-                this.progress.put(goal, progress);
+                this.progress.put(goal, event.getNewValue());
             } catch (UnsupportedOperationException exception) {
-                Map<Goal, Long> newProgress = new HashMap<>(this.progress);
-                newProgress.put(goal, progress);
-                this.progress = newProgress;
+                Map<Goal, Long> newProgressMap = new HashMap<>(this.progress);
+                newProgressMap.put(goal, event.getNewValue());
+                this.progress = newProgressMap;
             }
         }
     }
@@ -97,7 +106,7 @@ public class BaseQuestProgress implements QuestProgress {
         List<Goal> goals = objective.goals();
 
         return goals.stream()
-                    .allMatch(goal -> progress.getOrDefault(goal, 0L) >= goal.targetValue());
+                .allMatch(goal -> progress.getOrDefault(goal, 0L) >= goal.targetValue());
     }
 
     /**
@@ -107,9 +116,9 @@ public class BaseQuestProgress implements QuestProgress {
      */
     public long sumProgressValues() {
         return this.progress.values()
-                            .stream()
-                            .mapToLong(Long::longValue)
-                            .sum();
+                .stream()
+                .mapToLong(Long::longValue)
+                .sum();
     }
 
     /**
@@ -148,15 +157,8 @@ public class BaseQuestProgress implements QuestProgress {
         return this.objective;
     }
 
-    public void save() {
-        String formatPath = "progress." + quest.questUniqueKey()
-                                               .getKey() + ".goals.";
-        FileConfiguration userConfig = user.config();
-
-        for (Map.Entry<Goal, Long> entry : progress.entrySet()) {
-            Goal goal = entry.getKey();
-            long value = entry.getValue();
-            userConfig.set(formatPath.concat(goal.toString()), value);
-        }
+    @Override
+    public QuestUserData getUser() {
+        return user;
     }
 }

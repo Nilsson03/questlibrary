@@ -4,11 +4,14 @@ import com.google.common.base.Preconditions;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import ru.nilsson03.library.collection.Pair;
+import ru.nilsson03.library.quest.condition.QuestCondition;
 import ru.nilsson03.library.quest.core.Quest;
 import ru.nilsson03.library.quest.objective.Objective;
 import ru.nilsson03.library.quest.objective.goal.Goal;
+import ru.nilsson03.library.quest.user.data.QuestUserData;
 
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 public interface QuestProgress {
@@ -51,8 +54,20 @@ public interface QuestProgress {
 
         Preconditions.checkArgument(player != null, "Player not found");
 
-        long currentCount = getValue(goal);
-        setProgress(goal, currentCount + amount, checkPlayerEffects);
+        if (!conditionsIsAchieve())
+            return;
+
+        setProgress(goal, amount, checkPlayerEffects);
+    }
+
+    default boolean conditionsIsAchieve() {
+        Set<QuestCondition> conditions = quest().conditions();
+        for (QuestCondition questCondition : conditions) {
+            if (!questCondition.isMet(getUser())) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /**
@@ -98,6 +113,8 @@ public interface QuestProgress {
      * @return идентификатор пользователя
      */
     UUID userUuid();
+
+    QuestUserData getUser();
 
     /**
      * Получение задачи, к которой относится прогресс
