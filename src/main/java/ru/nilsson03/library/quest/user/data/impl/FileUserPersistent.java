@@ -6,36 +6,39 @@ import ru.nilsson03.library.NPlugin;
 import ru.nilsson03.library.bukkit.file.BukkitDirectory;
 import ru.nilsson03.library.bukkit.file.FileRepository;
 import ru.nilsson03.library.bukkit.file.configuration.BukkitConfig;
+import ru.nilsson03.library.bukkit.util.Namespace;
+import ru.nilsson03.library.bukkit.util.log.ConsoleLogger;
 import ru.nilsson03.library.quest.core.Quest;
-import ru.nilsson03.library.quest.namespace.QuestNamespace;
+import ru.nilsson03.library.quest.objective.goal.registry.ObjectiveGoalFactoryRegistry;
 import ru.nilsson03.library.quest.objective.progress.ProgressSaver;
 import ru.nilsson03.library.quest.objective.progress.QuestProgress;
-import ru.nilsson03.library.quest.objective.progress.impl.BaseQuestProgress;
-import ru.nilsson03.library.quest.objective.progress.registry.QuestProgressRegistry;
+import ru.nilsson03.library.quest.objective.progress.parser.BaseProgressParser;
+import ru.nilsson03.library.quest.objective.progress.saver.BaseProgressSaver;
 import ru.nilsson03.library.quest.parser.Parser;
 import ru.nilsson03.library.quest.storage.QuestStorage;
 import ru.nilsson03.library.quest.user.data.QuestUserData;
 import ru.nilsson03.library.quest.user.data.UserDataPersistent;
-
 import java.util.*;
 
 public class FileUserPersistent implements UserDataPersistent {
 
-    private final NPlugin plugin;
     private final FileRepository fileRepository;
+    private final NPlugin plugin;
     private final QuestStorage questStorage;
+    private final Parser<QuestProgress> questProgressParser;
+    private final ProgressSaver progressSaver;
     private final BukkitDirectory usersDirectory;
-    private final QuestProgressRegistry questProgressRegistry;
 
     public FileUserPersistent(NPlugin plugin,
-                              FileRepository fileRepository,
                               QuestStorage questStorage,
-                              QuestProgressRegistry questProgressRegistry) {
+                              ObjectiveGoalFactoryRegistry objectiveGoalFactoryRegistry) {
         this.plugin = plugin;
-        this.fileRepository = fileRepository;
+        this.fileRepository = plugin.fileRepository();
         this.questStorage = questStorage;
-        this.questProgressRegistry = questProgressRegistry;
+        this.questProgressParser = new BaseProgressParser(questStorage, objectiveGoalFactoryRegistry);
+        this.progressSaver = new BaseProgressSaver();
         Optional<BukkitDirectory> usersDirectoryOptional = fileRepository.getDirectoryOrLoad("users");
+
         if (usersDirectoryOptional.isEmpty())
             throw new NullPointerException("Users directory not found, class FileUserDataStorage");
         else
@@ -45,16 +48,18 @@ public class FileUserPersistent implements UserDataPersistent {
     @Override
     public void saveUserData(QuestUserData userData) {
         String userFileName = userData.uuid().toString();
-        BukkitConfig bukkitConfig;
+        BukkitConfig userFile;
         if (usersDirectory.containsFileWithName(userFileName)) {
-            Optional<BukkitConfig> userFile = usersDirectory.getConfig(userFileName);
-            bukkitConfig = userFile.get();
+            userFile = usersDirectory.getBukkitConfig(userFileName);
         } else {
-            Optional<BukkitConfig> userFile = fileRepository.create(usersDirectory, userFileName);
-            bukkitConfig = userFile.get();
+            Optional<BukkitConfig> createdFile = fileRepository.create(usersDirectory, userFileName);
+            if (createdFile.isPresent()) userFile = createdFile.get();
+            else {
+                throw new NullPointerException("Не удалось создать пустую конфигурацию для игрока " + userFileName);
+            }
         }
 
-        FileConfiguration config = bukkitConfig.getFileConfiguration();
+        FileConfiguration config = userFile.getFileConfiguration();
 
         config.set("uuid", userData.uuid().toString());
 
@@ -64,12 +69,10 @@ public class FileUserPersistent implements UserDataPersistent {
 
         userData.getActiveQuests().forEach(progress -> {
             Quest quest = progress.quest();
-            QuestNamespace namespace = quest.questUniqueKey();
+            Namespace namespace = quest.questUniqueKey();
             ConfigurationSection configurationSection = config.createSection("active_progresses." + namespace.getKey());
 
-            String saverKey = quest instanceof BaseQuestProgress ? "base" : "staged";
-            ProgressSaver saver = questProgressRegistry.getSaver(saverKey);
-            saver.save(progress, configurationSection);
+            progressSaver.save(progress, configurationSection);
         });
 
         if (userData.hasActiveReceiptsRewardsData()) {
@@ -80,40 +83,26 @@ public class FileUserPersistent implements UserDataPersistent {
             }
         }
 
-        bukkitConfig.saveConfiguration();
+        userFile.saveConfiguration();
     }
 
     @Override
     public QuestUserData loadUserData(UUID uuid) {
 
         String userFileName = uuid.toString();
-        BukkitConfig bukkitConfig;
+        BukkitConfig userFile;
         if (usersDirectory.containsFileWithName(userFileName)) {
-            Optional<BukkitConfig> userFile = usersDirectory.getConfig(userFileName);
-            bukkitConfig = userFile.get();
+            userFile = usersDirectory.getBukkitConfig(userFileName);
         } else {
             return new BaseQuestUserData(uuid,
-                    plugin,
                     new ArrayList<>(),
                     new ArrayList<>(),
                     new QuestUserReceiptsRewardsData());
         }
 
-        FileConfiguration config = bukkitConfig.getFileConfiguration();
+        FileConfiguration config = userFile.getFileConfiguration();
 
-        List<QuestProgress> questProgressList  = new ArrayList<>();
-        if (config.contains("active_progresses")) {
-            ConfigurationSection configurationSection = config.getConfigurationSection("active_progresses");
-
-            for (String keyQuest : configurationSection.getKeys(false)) {
-
-                String parserKey = configurationSection.contains("current_stage") ? "staged" : "base";
-                Parser<QuestProgress> parser = questProgressRegistry.getParser(parserKey);
-                ConfigurationSection progressSection = configurationSection.getConfigurationSection(keyQuest);
-                QuestProgress questProgress = parser.parse(progressSection);
-                questProgressList.add(questProgress);
-            }
-        }
+        List<QuestProgress> questProgressList = new ArrayList<>();
 
         Map<UUID, Integer> receiptsRewards = new HashMap<>();
         if (config.contains("receipts_rewards")) {
@@ -131,20 +120,37 @@ public class FileUserPersistent implements UserDataPersistent {
                 .map(questStorage::getQuestByUniqueKeyOrThrow)
                 .toList());
 
-        return new BaseQuestUserData(uuid,
-                plugin,
+        QuestUserData userData = new BaseQuestUserData(uuid,
                 completedQuests,
-                questProgressList,
+                new ArrayList<>(),
                 questUserReceiptsRewardsData);
+
+        if (config.contains("active_progresses")) {
+            ConfigurationSection configurationSection = config.getConfigurationSection("active_progresses");
+
+            for (String keyQuest : configurationSection.getKeys(false)) {
+
+                ConfigurationSection progressSection = configurationSection.getConfigurationSection(keyQuest);
+                if (progressSection == null) {
+                    continue;
+                }
+
+                QuestProgress questProgress = ((BaseProgressParser) questProgressParser).parse(progressSection, userData);
+                questProgressList.add(questProgress);
+            }
+        }
+
+        userData.addActiveQuests(questProgressList);
+        return userData;
     }
 
     @Override
     public void deleteUserData(UUID uuid) {
         String userFileName = uuid.toString();
         if (usersDirectory.containsFileWithName(userFileName)) {
-            Optional<BukkitConfig> userFile = usersDirectory.getConfig(userFileName);
-            BukkitConfig bukkitConfig = userFile.get();
-            usersDirectory.removeAndDeleteConfig(bukkitConfig);
+            BukkitConfig userFile = usersDirectory.getBukkitConfig(userFileName);
+            usersDirectory.removeAndDeleteConfig(userFile);
+            ConsoleLogger.info(plugin, "Данные игрока %s были успешно удалены.", userFileName);
         }
     }
 }

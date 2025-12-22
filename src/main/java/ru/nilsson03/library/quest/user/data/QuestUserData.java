@@ -1,6 +1,5 @@
 package ru.nilsson03.library.quest.user.data;
 
-import org.bukkit.configuration.file.FileConfiguration;
 import ru.nilsson03.library.quest.core.Quest;
 import ru.nilsson03.library.quest.exception.QuestAlreadyCompletedException;
 import ru.nilsson03.library.quest.exception.UserAlreadyHasQuestProgressException;
@@ -13,8 +12,6 @@ import java.util.Set;
 import java.util.UUID;
 
 public interface QuestUserData {
-
-    FileConfiguration config();
 
     void incrementProgressQuestsWithValueGoals(final ObjectiveType objectiveType, long value);
 
@@ -95,4 +92,6 @@ public interface QuestUserData {
     void addCompletedQuest(Quest quest);
 
     List<QuestProgress> getActiveQuests();
+
+    void addActiveQuests(List<QuestProgress> objectiveProgresses);
 }

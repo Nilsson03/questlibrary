@@ -1,8 +1,5 @@
 package ru.nilsson03.library.quest.user.data.impl;
 
-import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.plugin.Plugin;
-import ru.nilsson03.library.bukkit.file.FileHelper;
 import ru.nilsson03.library.quest.QuestLibrary;
 import ru.nilsson03.library.quest.core.Quest;
 import ru.nilsson03.library.quest.exception.QuestAlreadyCompletedException;
@@ -13,14 +10,12 @@ import ru.nilsson03.library.quest.objective.progress.QuestProgress;
 import ru.nilsson03.library.quest.objective.registry.ObjectiveType;
 import ru.nilsson03.library.quest.user.data.QuestUserData;
 
-import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
 
 public class BaseQuestUserData implements QuestUserData {
 
     private final UUID uuid;
-    private final FileConfiguration userConfig;
     private final List<Quest> completeQuests;
     private final List<QuestProgress> objectiveProgresses;
     private final QuestUserReceiptsRewardsData receiptsRewardsData;
@@ -36,32 +31,30 @@ public class BaseQuestUserData implements QuestUserData {
      * @see QuestUserReceiptsRewardsData
      */
     public BaseQuestUserData(
-            final UUID uuid, final Plugin plugin, final List<Quest> completeQuests,
+            final UUID uuid, List<Quest> completeQuests,
             final List<QuestProgress> objectiveProgresses, QuestUserReceiptsRewardsData receiptsRewardsData) throws NullPointerException {
         this.uuid = Objects.requireNonNull(uuid, "User uuid cant be null");
         this.completeQuests = Objects.requireNonNull(completeQuests, "Complete quests cant be null");
         this.objectiveProgresses = Objects.requireNonNull(objectiveProgresses, "Objective progresses cant be null");
-        this.userConfig = FileHelper.loadConfiguration(plugin, Paths.get(plugin.getDataFolder()
-                                                                               .getPath(), "users")
-                                                                    .toFile(), uuid.toString());
         this.receiptsRewardsData = receiptsRewardsData;
     }
 
     @Override
-    public FileConfiguration config() {
-        return userConfig;
-    }
-
-    @Override
-    public void incrementProgressQuestsWithValueGoals(ObjectiveType objectiveType, long value) {
+    public synchronized void incrementProgressQuestsWithValueGoals(ObjectiveType objectiveType, long value) {
         if (!hasActiveQuestWithCurrentObjectiveType(objectiveType)) {
             return;
         }
 
-        incrementProgressQuestsWithObjectiveType(objectiveType, 1L, value);
+        List<QuestProgress> objectivesProgress = getProgressByObjectiveType(objectiveType);
+        objectivesProgress.forEach(progress -> {
+            Objective objective = progress.objective();
+            for (Goal goal : objective.goals()) {
+                progress.incrementProgress(goal, value, false);
+            }
+        });
     }
 
-    public void incrementProgressQuestsWithObjectiveType(final ObjectiveType objectiveType, Object object, long value) {
+    public synchronized void incrementProgressQuestsWithObjectiveType(final ObjectiveType objectiveType, Object object, long value) {
         if (!hasActiveQuestWithCurrentObjectiveType(objectiveType)) {
             return;
         }
@@ -131,7 +124,7 @@ public class BaseQuestUserData implements QuestUserData {
     /**
      * {@inheritDoc}
      */
-    public void addNewProgress(final QuestProgress progress) throws QuestAlreadyCompletedException,
+    public synchronized void addNewProgress(final QuestProgress progress) throws QuestAlreadyCompletedException,
                                                                     UserAlreadyHasQuestProgressException {
         if (questIsComplete(progress.quest())) {
             throw new QuestAlreadyCompletedException("Quest already completed");
@@ -205,7 +198,7 @@ public class BaseQuestUserData implements QuestUserData {
     }
 
     @Override
-    public void addCompletedQuest(Quest quest) {
+    public synchronized void addCompletedQuest(Quest quest) {
         Objects.requireNonNull(quest, "Quest cannot be null");
 
         if (completeQuests.stream()
@@ -220,5 +213,9 @@ public class BaseQuestUserData implements QuestUserData {
     @Override
     public List<QuestProgress> getActiveQuests() {
         return new ArrayList<>(objectiveProgresses);
+    }
+
+    public synchronized void addActiveQuests(List<QuestProgress> objectiveProgresses) {
+        this.objectiveProgresses.addAll(objectiveProgresses);
     }
 }
