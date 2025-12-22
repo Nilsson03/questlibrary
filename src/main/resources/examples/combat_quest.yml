@@ -1,0 +1,51 @@
+id: "monster_hunter"
+
+meta:
+  displayName: "Охотник на монстров"
+  weight: 3
+  daily: false
+  description:
+    - "Убей враждебных мобов в ночи"
+    - "Награда: 500 монет и зачарованный меч"
+
+conditions:
+  or:
+    quest_1:
+      type: "quest_completed"
+      quest_completed: "gather_wood"
+    quest_2:
+      type: "quest_completed"
+      quest_completed: "farmer_quest"
+
+objectives:
+  - key: "kill_zombies"
+    type: "KILL_ENTITY"
+    potionEffects:
+      - type: "NIGHT_VISION"
+        duration: 6000
+        amplifier: 0
+    goals:
+      - type: "ENTITY_TYPE"
+        entity_type: "ZOMBIE"
+        target: 20
+
+  - key: "kill_skeletons"
+    type: "KILL_ENTITY"
+    goals:
+      - type: "ENTITY_TYPE"
+        entity_type: "SKELETON"
+        target: 15
+
+  - key: "kill_creepers"
+    type: "KILL_ENTITY"
+    goals:
+      - type: "ENTITY_TYPE"
+        entity_type: "CREEPER"
+        target: 10
+
+reward:
+  uniqueIdentificationKey: "c3d4e5f6-a7b8-9012-cdef-123456789012"
+  commands:
+    - "eco give %player% 500"
+    - "give %player% diamond_sword{Enchantments:[{id:sharpness,lvl:3}]} 1"
+    - "tellraw %player% {\"text\":\"Монстры повержены! +500 монет\",\"color\":\"red\"}"

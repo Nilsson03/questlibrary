@@ -1,0 +1,48 @@
+id: "farmer_quest"
+
+meta:
+  displayName: "Начинающий фермер"
+  weight: 2
+  daily: true
+  description:
+    - "Собери урожай и накорми животных"
+    - "Награда: 250 монет и семена"
+
+conditions:
+  and:
+    has_item:
+      type: "has_item"
+      material: "IRON_HOE"
+      amount: 1
+
+objectives:
+  - key: "harvest_wheat"
+    type: "BREAK_BLOCK"
+    goals:
+      - type: "MATERIAL"
+        material: "WHEAT"
+        target: 32
+
+  - key: "breed_animals"
+    type: "TAME_ENTITY"
+    goals:
+      - type: "ENTITY_TYPE"
+        entity_type: "COW"
+        target: 5
+      - type: "ENTITY_TYPE"
+        entity_type: "SHEEP"
+        target: 5
+
+  - key: "craft_bread"
+    type: "CRAFT_ITEM"
+    goals:
+      - type: "MATERIAL"
+        material: "BREAD"
+        target: 16
+
+reward:
+  uniqueIdentificationKey: "b2c3d4e5-f6a7-8901-bcde-f12345678901"
+  commands:
+    - "eco give %player% 250"
+    - "give %player% wheat_seeds 64"
+    - "tellraw %player% {\"text\":\"Ферма процветает! +250 монет\",\"color\":\"gold\"}"

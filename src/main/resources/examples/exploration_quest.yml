@@ -1,0 +1,43 @@
+id: "explorer"
+
+meta:
+  displayName: "Исследователь мира"
+  weight: 4
+  daily: false
+  description:
+    - "Исследуй мир и собери редкие ресурсы"
+    - "Награда: 1000 монет и эндер-сундук"
+
+objectives:
+  - key: "move_distance"
+    type: "MOVE"
+    goals:
+      - type: "VALUE"
+        target: 10000
+
+  - key: "mine_diamonds"
+    type: "BREAK_BLOCK"
+    goals:
+      - type: "MATERIAL"
+        material: "DIAMOND_ORE"
+        target: 16
+
+  - key: "catch_fish"
+    type: "CATCH_FISH"
+    goals:
+      - type: "ENTITY_TYPE"
+        entity_type: "COD"
+        target: 25
+
+  - key: "enchant_items"
+    type: "ENCHANT"
+    goals:
+      - type: "VALUE"
+        target: 5
+
+reward:
+  uniqueIdentificationKey: "d4e5f6a7-b8c9-0123-def0-234567890123"
+  commands:
+    - "eco give %player% 1000"
+    - "give %player% ender_chest 1"
+    - "tellraw %player% {\"text\":\"Мир исследован! +1000 монет\",\"color\":\"aqua\"}"

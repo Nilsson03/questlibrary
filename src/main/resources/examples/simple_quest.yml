@@ -1,0 +1,28 @@
+id: "gather_wood"
+
+meta:
+  displayName: "Лесоруб"
+  weight: 1
+  daily: false
+  description:
+    - "Собери 64 блока дуба"
+    - "Награда: 100 монет"
+
+conditions:
+  quest_completed:
+    type: "quest_completed"
+    quest_completed: "tutorial_quest"
+
+objectives:
+  - key: "gather_oak"
+    type: "BREAK_BLOCK"
+    goals:
+      - type: "MATERIAL"
+        material: "OAK_LOG"
+        target: 64
+
+reward:
+  uniqueIdentificationKey: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+  commands:
+    - "eco give %player% 100"
+    - "tellraw %player% {\"text\":\"Квест выполнен! +100 монет\",\"color\":\"green\"}"
