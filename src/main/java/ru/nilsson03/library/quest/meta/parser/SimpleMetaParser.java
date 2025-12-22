@@ -1,20 +1,22 @@
 package ru.nilsson03.library.quest.meta.parser;
 
+import java.util.List;
+
 import org.bukkit.configuration.ConfigurationSection;
+
 import ru.nilsson03.library.quest.meta.QuestMeta;
 import ru.nilsson03.library.quest.meta.impl.SimpleQuestMeta;
 import ru.nilsson03.library.quest.parser.Parser;
 
-import java.util.List;
-
 public class SimpleMetaParser implements Parser<QuestMeta> {
 
     @Override
-    public QuestMeta parse(ConfigurationSection section) {
-        int weight = section.getInt("weight", 0);
-        List<String> description = section.getStringList("description");
-        String displayName = section.getString("displayName", "Unnamed Quest");
-        boolean daily = section.getBoolean("daily", false);
+    public QuestMeta parse(ConfigurationSection configurationSection) {
+        int weight = configurationSection.getInt("weight");
+        List<String> description = configurationSection.getStringList("description");
+        String displayName = configurationSection.getString("displayName");
+        boolean daily = configurationSection.getBoolean("daily");
         return new SimpleQuestMeta(weight, description, displayName, daily);
     }
+    
 }
