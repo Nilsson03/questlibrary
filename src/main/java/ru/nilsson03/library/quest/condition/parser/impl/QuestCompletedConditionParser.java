@@ -6,7 +6,6 @@ import ru.nilsson03.library.quest.QuestLibrary;
 import ru.nilsson03.library.quest.condition.QuestCondition;
 import ru.nilsson03.library.quest.condition.impl.QuestCompletedCondition;
 import ru.nilsson03.library.quest.core.Quest;
-import ru.nilsson03.library.quest.core.service.QuestService;
 import ru.nilsson03.library.quest.exception.QuestStorageDuplicateException;
 import ru.nilsson03.library.quest.exception.QuestStorageException;
 import ru.nilsson03.library.quest.exception.QuestStorageNotLoadedException;
@@ -19,11 +18,11 @@ public class QuestCompletedConditionParser implements Parser<QuestCondition> {
     private final Plugin plugin;
     private final QuestStorage questStorage;
 
-    public QuestCompletedConditionParser(QuestService questService) throws QuestStorageException {
-        QuestStorageManager questStorageManager = QuestLibrary.getApi()
-                                                          .getQuestStorageManager();
+    public QuestCompletedConditionParser(Plugin plugin) throws QuestStorageException {
+        this.plugin = plugin;
 
-        this.plugin = questService.getPlugin();
+        QuestStorageManager questStorageManager = QuestLibrary.getApi()
+                                                              .getQuestStorageManager();
 
         try {
             this.questStorage = questStorageManager.getQuestStorageByPlugin(plugin);
