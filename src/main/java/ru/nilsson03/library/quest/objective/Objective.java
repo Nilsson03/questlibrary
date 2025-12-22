@@ -39,10 +39,6 @@ public class Objective {
     }
 
     public Optional<Goal> getGoal(Object object) {
-        if (contains(object)) {
-            return Optional.empty();
-        }
-
         return this.goals.stream()
                          .filter(goal -> goal.matches(object))
                          .findFirst();
@@ -65,6 +61,7 @@ public class Objective {
         Objects.requireNonNull(valueType, "Goal cannot be null");
 
         return goals.stream()
+                    .filter(goal -> goal.matches(valueType))
                     .mapToLong(Goal::targetValue)
                     .sum();
     }

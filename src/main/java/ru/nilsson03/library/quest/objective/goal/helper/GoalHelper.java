@@ -50,19 +50,31 @@ public class GoalHelper {
                 if (goalSection == null) continue;
 
                 String[] parts = goalString.split("[()]");
-                String goalType = parts[0].toLowerCase(); // "material"
+                if (parts.length < 2) {
+                    continue; // некорректный формат
+                }
+                String goalType = parts[0].toLowerCase(); // "material" или "value"
 
                 Optional<ObjectiveGoalFactory> factoryOptional = objectiveGoalRegistry.getFactory(goalType);
                 if (factoryOptional.isEmpty()) continue;
 
                 Map<String, Object> parameters = new HashMap<>();
-                String[] args = parts[1].split("-"); // ["DIAMOND", "10"]
+                String payload = parts[1];
+                String[] args = goalType.equals("value")
+                        ? new String[]{payload}
+                        : payload.split("-");
 
-                if (goalType.equalsIgnoreCase("Value")) {
-                    parameters.put("value", Long.parseLong(args[1]));
-                } else {
-                    parameters.put(goalType, args[0]);
-                    parameters.put("value", Long.parseLong(args[1]));
+                try {
+                    if (goalType.equals("value")) {
+                        parameters.put("value", Long.parseLong(args[0]));
+                    } else if (args.length >= 2) {
+                        parameters.put(goalType, args[0]);
+                        parameters.put("value", Long.parseLong(args[1]));
+                    } else {
+                        continue;
+                    }
+                } catch (NumberFormatException exception) {
+                    continue;
                 }
 
                 Goal goal = factoryOptional.get().create(parameters);
