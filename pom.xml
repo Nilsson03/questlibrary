@@ -25,7 +25,7 @@
         <dependency>
             <groupId>ru.nilsson03</groupId>
             <artifactId>baselibrary</artifactId>
-            <version>1.1.0-FILE-UPDATE</version>
+            <version>1.2.6-DEV</version>
         </dependency>
         <dependency>
             <groupId>org.spigotmc</groupId>
