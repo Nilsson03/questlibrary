@@ -3,6 +3,7 @@ package ru.nilsson03.library.quest.handler;
 import org.bukkit.Bukkit;
 import org.bukkit.event.Event;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.Plugin;
 import ru.nilsson03.library.quest.handler.handlers.QuestEventHandler;
@@ -24,7 +25,7 @@ public class BukkitQuestEventAdapter implements Listener {
               .registerEvents(this, plugin);
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onEvent(Event event) {
         Class<? extends Event> eventClass = event.getClass();
         List<QuestEventHandler<?>> handlers = questEventManager.getHandlers()
