@@ -8,7 +8,7 @@ import java.util.function.Consumer;
 
 public interface QuestCompleter {
 
-    void completeQuest(QuestUserData user, Quest quest, Consumer<QuestUserData> questUserDataConsumer);
+    CompleteStatus completeQuest(QuestUserData user, Quest quest, Consumer<QuestUserData> questUserDataConsumer);
 
     default void giveReward(QuestUserData user, Quest quest) {
         quest.rewards()
