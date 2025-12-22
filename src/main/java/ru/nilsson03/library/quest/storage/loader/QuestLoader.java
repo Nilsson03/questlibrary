@@ -4,7 +4,6 @@ import com.google.common.base.Preconditions;
 import ru.nilsson03.library.quest.core.Quest;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -44,7 +43,6 @@ public interface QuestLoader {
      *
      * @param file файл, содержащий данные квеста
      * @return объект Quest или null, если файл не содержит валидных данных
-     * @throws IOException если произошла ошибка при чтении файла
      */
     Quest loadQuestFromFile(File file);
 }
