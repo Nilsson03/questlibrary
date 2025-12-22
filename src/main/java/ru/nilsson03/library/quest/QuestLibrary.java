@@ -3,6 +3,7 @@ package ru.nilsson03.library.quest;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 import ru.nilsson03.library.NPlugin;
+import ru.nilsson03.library.bukkit.file.FileHelper;
 import ru.nilsson03.library.bukkit.util.log.ConsoleLogger;
 import ru.nilsson03.library.quest.exception.QuestStorageDuplicateException;
 import ru.nilsson03.library.quest.exception.QuestStorageNotLoadedException;
@@ -24,10 +25,16 @@ public class QuestLibrary extends NPlugin {
 
         createDataFolders();
 
+        FileHelper.loadConfigurations(this, "examples/combat_quest",
+                "examples/exploration_quest",
+                "examples/multi_objective_quest",
+                "examples/simple_quest");
+
         try {
             questStorageManager = new QuestStorageManager();
         } catch (IllegalStateException exception) {
-            ConsoleLogger.error(this, "Quest storage manager already initialized. Disabling the Library, exception %s", exception.getMessage());
+            ConsoleLogger.error(this, "Quest storage manager already initialized. Disabling the Library, exception %s",
+                    exception.getMessage());
             Bukkit.getPluginManager()
                     .disablePlugin(this);
         }
@@ -35,7 +42,7 @@ public class QuestLibrary extends NPlugin {
 
     public QuestStorage getQuestStorage(Plugin plugin) {
         QuestStorageManager questStorageManager = QuestLibrary.getApi()
-                                                          .getQuestStorageManager();
+                .getQuestStorageManager();
 
         if (!questStorageManager.isQuestStorageLoadedAndNotEmpty(plugin)) {
             throw new QuestStorageNotLoadedException(
@@ -56,9 +63,11 @@ public class QuestLibrary extends NPlugin {
         createFolder(dataFolder, "Plugin data");
 
         createFolder(Paths.get(dataFolder.getPath(), "users")
-                          .toFile(), "Users data");
+                .toFile(), "Users data");
         createFolder(Paths.get(dataFolder.getPath(), "quests")
-                          .toFile(), "Quests data");
+                .toFile(), "Quests data");
+        createFolder(Paths.get(dataFolder.getPath(), "examples")
+                .toFile(), "Example quests");
     }
 
     private void createFolder(File folder, String folderName) {
