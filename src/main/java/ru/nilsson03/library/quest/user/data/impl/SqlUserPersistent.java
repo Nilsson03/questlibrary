@@ -51,9 +51,6 @@ public class SqlUserPersistent implements UserDataPersistent {
         ConsoleLogger.info(plugin, "SQL user persistent initialized with %d async threads", threadPoolSize);
     }
 
-    /**
-     * Инициализация таблиц в базе данных
-     */
     private void initializeTables() {
         try (Connection connection = dataSource.getConnection()) {
             createUsersTable(connection);
