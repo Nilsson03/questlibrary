@@ -18,10 +18,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-/**
- * SQL реализация для сохранения и загрузки данных пользователей квестов.
- * Поддерживает работу с MySQL, PostgreSQL и другими SQL базами данных.
- */
 public class SqlUserPersistent implements UserDataPersistent {
 
     private final NPlugin plugin;
@@ -461,10 +457,6 @@ public class SqlUserPersistent implements UserDataPersistent {
         deleteUserDataAsync(uuid).join();
     }
 
-    /**
-     * Корректно завершает работу пула потоков.
-     * Должен быть вызван при отключении плагина.
-     */
     public void shutdown() {
         ConsoleLogger.info(plugin, "Shutting down SQL executor service...");
         executorService.shutdown();
