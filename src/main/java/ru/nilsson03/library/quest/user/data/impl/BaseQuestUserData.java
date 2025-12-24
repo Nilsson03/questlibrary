@@ -17,7 +17,7 @@ public class BaseQuestUserData implements QuestUserData {
 
     private final UUID uuid;
     private final List<Quest> completeQuests;
-    private final List<QuestProgress> objectiveProgresses;
+    private final List<QuestProgress> questsProgress;
     private final QuestUserReceiptsRewardsData receiptsRewardsData;
 
     /**
@@ -32,13 +32,17 @@ public class BaseQuestUserData implements QuestUserData {
      */
     public BaseQuestUserData(
             final UUID uuid, List<Quest> completeQuests,
-            final List<QuestProgress> objectiveProgresses, QuestUserReceiptsRewardsData receiptsRewardsData) throws NullPointerException {
+            final List<QuestProgress> objectiveProgresses, QuestUserReceiptsRewardsData receiptsRewardsData)
+            throws NullPointerException {
         this.uuid = Objects.requireNonNull(uuid, "User uuid cant be null");
         this.completeQuests = Objects.requireNonNull(completeQuests, "Complete quests cant be null");
-        this.objectiveProgresses = Objects.requireNonNull(objectiveProgresses, "Objective progresses cant be null");
+        this.questsProgress = Objects.requireNonNull(objectiveProgresses, "Objective progresses cant be null");
         this.receiptsRewardsData = receiptsRewardsData;
     }
 
+     /**
+     * {@inheritDoc}
+     */
     @Override
     public synchronized void incrementProgressQuestsWithValueGoals(ObjectiveType objectiveType, long value) {
         if (!hasActiveQuestWithCurrentObjectiveType(objectiveType)) {
@@ -54,7 +58,12 @@ public class BaseQuestUserData implements QuestUserData {
         });
     }
 
-    public synchronized void incrementProgressQuestsWithObjectiveType(final ObjectiveType objectiveType, Object object, long value) {
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public synchronized void incrementProgressQuestsWithObjectiveType(final ObjectiveType objectiveType, Object object,
+            long value) {
         if (!hasActiveQuestWithCurrentObjectiveType(objectiveType)) {
             return;
         }
@@ -67,6 +76,10 @@ public class BaseQuestUserData implements QuestUserData {
         });
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public void addNewProgressFromSet(Set<QuestProgress> objectiveProgresses) {
 
         QuestLibrary questLibrary = QuestLibrary.getApi();
@@ -77,11 +90,13 @@ public class BaseQuestUserData implements QuestUserData {
             } catch (QuestAlreadyCompletedException exception) {
                 questLibrary.getLogger()
                         .warning(
-                                "An error occurred when adding a set of new progressions for the user " + uuid + " because this quest has already been completed by the player.");
+                                "An error occurred when adding a set of new progressions for the user " + uuid
+                                        + " because this quest has already been completed by the player.");
             } catch (UserAlreadyHasQuestProgressException exception) {
                 questLibrary.getLogger()
                         .warning(
-                                "An error occurred when adding a set of new progressions for the user " + uuid + " because the player already has progress for this quest with the same task type and set of tasks.");
+                                "An error occurred when adding a set of new progressions for the user " + uuid
+                                        + " because the player already has progress for this quest with the same task type and set of tasks.");
             }
         }
     }
@@ -90,42 +105,44 @@ public class BaseQuestUserData implements QuestUserData {
      * {@inheritDoc}
      */
     @Override
-    public boolean questIsStarted(Quest quest) {
-        return objectiveProgresses.stream()
-                                  .anyMatch(objectiveProgresses -> objectiveProgresses.quest()
-                                                                                      .questUniqueKey()
-                                                                                      .equals(quest.questUniqueKey()));
+    public synchronized boolean questIsStarted(Quest quest) {
+        return questsProgress.stream()
+                .anyMatch(objectiveProgresses -> objectiveProgresses.quest()
+                        .questUniqueKey()
+                        .equals(quest.questUniqueKey()));
     }
 
     /**
      * {@inheritDoc}
      */
-    public List<QuestProgress> getProgressByObjectiveType(final ObjectiveType objectiveType) {
+    @Override
+    public synchronized List<QuestProgress> getProgressByObjectiveType(final ObjectiveType objectiveType) {
         if (!hasActiveQuestWithCurrentObjectiveType(objectiveType)) {
             return Collections.emptyList();
         }
 
-        return objectiveProgresses.stream()
-                                  .filter(progress -> progress.objective()
-                                                              .type() == objectiveType)
-                                  .collect(Collectors.toList());
+        return questsProgress.stream()
+                .filter(progress -> progress.objective()
+                        .type() == objectiveType)
+                .collect(Collectors.toList());
     }
 
     /**
      * {@inheritDoc}
      */
-    public boolean hasActiveQuestWithCurrentObjectiveType(final ObjectiveType objectiveType) {
-        return objectiveProgresses.stream()
-                                  .anyMatch(progress -> progress.objective()
-                                                                .type() == objectiveType);
+    @Override
+    public synchronized boolean hasActiveQuestWithCurrentObjectiveType(final ObjectiveType objectiveType) {
+        return questsProgress.stream()
+                .anyMatch(progress -> progress.objective()
+                        .type() == objectiveType);
     }
-
 
     /**
      * {@inheritDoc}
      */
-    public synchronized void addNewProgress(final QuestProgress progress) throws QuestAlreadyCompletedException,
-                                                                    UserAlreadyHasQuestProgressException {
+    @Override
+    public synchronized void addNewProgress(QuestProgress progress) throws QuestAlreadyCompletedException,
+            UserAlreadyHasQuestProgressException {
         if (questIsComplete(progress.quest())) {
             throw new QuestAlreadyCompletedException("Quest already completed");
         }
@@ -133,14 +150,15 @@ public class BaseQuestUserData implements QuestUserData {
         if (progressQuestAlreadyFoundInMap(progress)) {
             throw new UserAlreadyHasQuestProgressException(
                     "Collection with quest progress already has progress for this quest: " + progress.quest()
-                                                                                                     .questUniqueKey());
+                            .questUniqueKey());
         }
 
-        //        if (ObjectivesUtil.isProgressForQuestWithCurrentTypeAlreadyAdded(progress, objectiveProgresses)) {
-        //            return;
-        //        }
+        // if (ObjectivesUtil.isProgressForQuestWithCurrentTypeAlreadyAdded(progress,
+        // objectiveProgresses)) {
+        // return;
+        // }
 
-        objectiveProgresses.add(progress);
+        questsProgress.add(progress);
     }
 
     /**
@@ -149,15 +167,16 @@ public class BaseQuestUserData implements QuestUserData {
      * @param objectiveProgress Прогресс по квесту.
      * @return true, если прогресс уже существует, иначе false.
      */
-    private boolean progressQuestAlreadyFoundInMap(final QuestProgress objectiveProgress) {
-        return this.objectiveProgresses.stream()
-                                       .anyMatch(progress -> progress.quest()
-                                                                     .equals(objectiveProgress.quest()));
+    private boolean progressQuestAlreadyFoundInMap(QuestProgress objectiveProgress) {
+        return this.questsProgress.stream()
+                .anyMatch(progress -> progress.quest()
+                        .equals(objectiveProgress.quest()));
     }
 
     /**
      * {@inheritDoc}
      */
+    @Override
     public boolean questIsComplete(final Quest quest) {
         return completeQuests.contains(quest);
     }
@@ -165,19 +184,24 @@ public class BaseQuestUserData implements QuestUserData {
     /**
      * {@inheritDoc}
      */
+    @Override
     public QuestProgress getProgressByQuestOrThrow(final Quest quest) throws QuestAlreadyCompletedException {
 
         if (questIsComplete(quest)) {
             throw new QuestAlreadyCompletedException("User already complete this quest, progress not available.");
         }
 
-        return objectiveProgresses.stream()
-                                  .filter(objectiveProgress -> objectiveProgress.quest()
-                                                                                .equals(quest))
-                                  .findFirst()
-                                  .orElse(null);
+        return questsProgress.stream()
+                .filter(objectiveProgress -> objectiveProgress.quest()
+                        .equals(quest))
+                .findFirst()
+                .orElse(null);
     }
 
+     /**
+     * {@inheritDoc}
+     */
+    @Override
     public boolean hasActiveReceiptsRewardsData() {
         return receiptsRewardsData != null;
     }
@@ -185,25 +209,37 @@ public class BaseQuestUserData implements QuestUserData {
     /**
      * {@inheritDoc}
      */
+    @Override
     public QuestUserReceiptsRewardsData getReceiptsRewardsData() {
         return receiptsRewardsData;
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public List<Quest> completeQuests() {
         return new ArrayList<>(completeQuests);
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public UUID uuid() {
         return uuid;
     }
 
+     /**
+     * {@inheritDoc}
+     */
     @Override
     public synchronized void addCompletedQuest(Quest quest) {
         Objects.requireNonNull(quest, "Quest cannot be null");
 
         if (completeQuests.stream()
-                          .anyMatch(completeQuest -> completeQuest.questUniqueKey()
-                                                                  .equals(quest.questUniqueKey()))) {
+                .anyMatch(completeQuest -> completeQuest.questUniqueKey()
+                        .equals(quest.questUniqueKey()))) {
             return;
         }
 
@@ -212,10 +248,16 @@ public class BaseQuestUserData implements QuestUserData {
 
     @Override
     public List<QuestProgress> getActiveQuests() {
-        return new ArrayList<>(objectiveProgresses);
+        return new ArrayList<>(questsProgress);
     }
 
     public synchronized void addActiveQuests(List<QuestProgress> objectiveProgresses) {
-        this.objectiveProgresses.addAll(objectiveProgresses);
+        this.questsProgress.addAll(objectiveProgresses);
+    }
+
+    @Override
+    public synchronized boolean isActiveQuest(Quest quest) {
+        return questsProgress.stream()
+                .anyMatch(progress -> progress.quest().questUniqueKey().equals(quest.questUniqueKey()));
     }
 }
