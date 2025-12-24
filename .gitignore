@@ -44,3 +44,5 @@ build/
 .qodo
 /.idea/.gitignore
 /.idea/vcs.xml
+.idea/dbnavigator.xml
+.idea/material_theme_project_new.xml
