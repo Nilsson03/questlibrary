@@ -22,17 +22,19 @@ public class Objective {
     private final List<Goal> goals = new ArrayList<>();
     private final List<PotionEffect> potionEffects = new ArrayList<>();
     private final ObjectiveType objectiveType;
+    private final String description;
 
     /**
      * Конструктор для создания объекта Objective.
      *
      * @param objectiveType Тип цели.
      */
-    public Objective(String key, ObjectiveType objectiveType, List<PotionEffect> potionEffects, List<Goal> goals) {
+    public Objective(String key, ObjectiveType objectiveType, List<PotionEffect> potionEffects, List<Goal> goals, String description) {
         this.key = Preconditions.checkNotNull(key, "Key cannot be null");
         this.objectiveType = Objects.requireNonNull(objectiveType, "ObjectiveType cannot be null");
         this.potionEffects.addAll(Objects.requireNonNull(potionEffects, "PotionEffects cannot be null"));
         this.goals.addAll(Objects.requireNonNull(goals, "Goals cannot be null"));
+        this.description = description != null ? description : "";
     }
 
     /**
@@ -120,5 +122,9 @@ public class Objective {
 
     public String key() {
         return key;
+    }
+
+    public String description() {
+        return description;
     }
 }

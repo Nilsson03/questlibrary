@@ -48,7 +48,10 @@ public class ObjectiveParser implements Parser<Objective> {
 
         String typeString = section.getString("type");
         ObjectiveType objectiveType = objectiveRegistry.getObjectiveType(typeString);
-        return new Objective(key, objectiveType, potionEffects, goals);
+        
+        String description = section.getString("description", "");
+        
+        return new Objective(key, objectiveType, potionEffects, goals, description);
     }
 
     private PotionEffect parsePotionEffect(Map<?, ?> effectMap) {
