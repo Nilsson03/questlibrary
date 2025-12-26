@@ -14,10 +14,15 @@ public class GoalHelper {
         List<Goal> goals = new ArrayList<>();
 
         if (goalsSection != null) {
-            for (String goalType : goalsSection.getKeys(false)) {
-                ConfigurationSection goalSection = goalsSection.getConfigurationSection(goalType);
+            for (String goalKey : goalsSection.getKeys(false)) {
+                ConfigurationSection goalSection = goalsSection.getConfigurationSection(goalKey);
                 if (goalSection == null) {
-                    throw new IllegalArgumentException("Некорректный формат цели: " + goalType);
+                    throw new IllegalArgumentException("Некорректный формат цели: " + goalKey);
+                }
+
+                String goalType = goalSection.getString("type");
+                if (goalType == null || goalType.trim().isEmpty()) {
+                    throw new IllegalArgumentException("Тип цели не указан для: " + goalKey);
                 }
 
                 Optional<ObjectiveGoalFactory> factoryOptional = objectiveGoalRegistry.getFactory(goalType);
@@ -29,7 +34,9 @@ public class GoalHelper {
 
                 Map<String, Object> parameters = new HashMap<>();
                 for (String key : goalSection.getKeys(false)) {
-                    parameters.put(key, goalSection.get(key));
+                    if (!key.equals("type")) {
+                        parameters.put(key, goalSection.get(key));
+                    }
                 }
 
                 Goal goal = factory.create(parameters);
