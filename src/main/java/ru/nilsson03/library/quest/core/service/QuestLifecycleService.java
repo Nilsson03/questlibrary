@@ -1,6 +1,10 @@
 package ru.nilsson03.library.quest.core.service;
 
+import java.util.Set;
+import java.util.function.Consumer;
+
 import org.bukkit.Bukkit;
+
 import ru.nilsson03.library.quest.core.Quest;
 import ru.nilsson03.library.quest.core.event.UserCompleteQuestEvent;
 import ru.nilsson03.library.quest.core.event.UserQuestStartEvent;
@@ -9,9 +13,6 @@ import ru.nilsson03.library.quest.quest.completer.CompleteStatus;
 import ru.nilsson03.library.quest.quest.completer.QuestCompleter;
 import ru.nilsson03.library.quest.quest.completer.registry.QuestCompleterRegistry;
 import ru.nilsson03.library.quest.user.data.QuestUserData;
-
-import java.util.Set;
-import java.util.function.Consumer;
 
 public class QuestLifecycleService {
 
@@ -43,6 +44,10 @@ public class QuestLifecycleService {
         }
     }
 
+    public void startQuest(QuestUserData user, Quest quest) {
+        this.startQuest(user, quest, null);
+    }
+
     public CompleteStatus completeQuest(QuestUserData user, Quest quest, Consumer<QuestUserData> questUserDataConsumer) {
         if (user.questIsComplete(quest)) {
             return CompleteStatus.ALREADY_COMPLETE;
@@ -69,5 +74,9 @@ public class QuestLifecycleService {
         }
 
         return status;
+    }
+
+    public CompleteStatus completeQuest(QuestUserData user, Quest quest) {
+        return completeQuest(user, quest, null);
     }
 }
