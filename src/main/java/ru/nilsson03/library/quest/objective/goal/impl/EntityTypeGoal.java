@@ -1,13 +1,29 @@
 package ru.nilsson03.library.quest.objective.goal.impl;
 
 import org.bukkit.entity.EntityType;
+
+import lombok.AllArgsConstructor;
 import ru.nilsson03.library.quest.objective.goal.sub.ObjectiveGoal;
 
-public record EntityTypeGoal(EntityType targetType, long targetValue) implements ObjectiveGoal {
+@AllArgsConstructor
+public class EntityTypeGoal implements ObjectiveGoal {
+
+    private final EntityType targetType;
+    private final long targetValue;
 
     @Override
     public boolean matches(Object target) {
         return target instanceof EntityType && target == targetType;
+    }
+
+    @Override
+    public EntityType targetType() {
+        return targetType;
+    }
+
+    @Override
+    public long targetValue() {
+        return targetValue;
     }
 
     @Override

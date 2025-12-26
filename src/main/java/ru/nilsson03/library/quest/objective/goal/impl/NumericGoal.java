@@ -1,8 +1,12 @@
 package ru.nilsson03.library.quest.objective.goal.impl;
 
+import lombok.AllArgsConstructor;
 import ru.nilsson03.library.quest.objective.goal.sub.ObjectiveGoal;
 
-public record NumericGoal(long targetValue) implements ObjectiveGoal {
+@AllArgsConstructor
+public class NumericGoal implements ObjectiveGoal {
+
+    private final long targetValue;
 
     @Override
     public Long targetType() {

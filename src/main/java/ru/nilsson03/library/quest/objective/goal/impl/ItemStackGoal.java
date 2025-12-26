@@ -1,10 +1,16 @@
 package ru.nilsson03.library.quest.objective.goal.impl;
 
 import org.bukkit.inventory.ItemStack;
+
+import lombok.AllArgsConstructor;
 import ru.nilsson03.library.bukkit.util.ItemStackSerialize;
 import ru.nilsson03.library.quest.objective.goal.sub.ObjectiveGoal;
 
-public record ItemStackGoal(ItemStack targetType, long targetValue) implements ObjectiveGoal {
+@AllArgsConstructor
+public class ItemStackGoal implements ObjectiveGoal {
+
+    private final ItemStack targetType;
+    private final long targetValue;
 
     @Override
     public boolean matches(Object target) {
@@ -12,6 +18,16 @@ public record ItemStackGoal(ItemStack targetType, long targetValue) implements O
             return targetType.isSimilar(other);
         }
         return false;
+    }
+
+    @Override
+    public ItemStack targetType() {
+        return targetType;
+    }
+
+    @Override
+    public long targetValue() {
+        return targetValue;
     }
 
     @Override
