@@ -1,12 +1,20 @@
 package ru.nilsson03.library.quest.objective;
 
-import com.google.common.base.Preconditions;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import org.bukkit.entity.Player;
 import org.bukkit.potion.PotionEffect;
+
+import com.google.common.base.Preconditions;
+
 import ru.nilsson03.library.quest.objective.goal.Goal;
 import ru.nilsson03.library.quest.objective.registry.ObjectiveType;
-
-import java.util.*;
 
 public class Objective {
 
@@ -64,6 +72,12 @@ public class Objective {
                     .filter(goal -> goal.matches(valueType))
                     .mapToLong(Goal::targetValue)
                     .sum();
+    }
+
+    public Set<Goal> filterGoalsByType(Class<? extends Goal> filteredGoal) {
+        return this.goals.stream()
+                         .filter(filteredGoal::isInstance)
+                         .collect(Collectors.toSet());
     }
 
     /**
