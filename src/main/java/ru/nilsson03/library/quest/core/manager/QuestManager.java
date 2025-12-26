@@ -1,6 +1,10 @@
 package ru.nilsson03.library.quest.core.manager;
 
+import java.util.function.Consumer;
+
 import org.bukkit.plugin.Plugin;
+
+import lombok.Getter;
 import ru.nilsson03.library.quest.core.Quest;
 import ru.nilsson03.library.quest.core.service.QuestLifecycleService;
 import ru.nilsson03.library.quest.core.service.QuestProgressService;
@@ -12,13 +16,12 @@ import ru.nilsson03.library.quest.quest.completer.registry.QuestCompleterRegistr
 import ru.nilsson03.library.quest.user.data.QuestUserData;
 import ru.nilsson03.library.quest.user.storage.QuestUsersStorage;
 
-import java.util.function.Consumer;
-
 /**
  * Менеджер для управления квестами, а так же остальными компонентами, которые к ним относятся
  *
  * @see ru.nilsson03.library.quest.core.service.QuestService инициализация данного менеджера
  */
+@Getter
 public class QuestManager {
 
     private final QuestLifecycleService questLifecycleService;
@@ -68,13 +71,5 @@ public class QuestManager {
      */
     public void startQuest(QuestUserData user, Quest quest, Consumer<QuestUserData> questUserDataConsumer) {
         questLifecycleService.startQuest(user, quest, questUserDataConsumer);
-    }
-
-    public QuestLifecycleService getQuestLifecycleService() {
-        return questLifecycleService;
-    }
-
-    public QuestEventManager getQuestEventManager() {
-        return questEventManager;
     }
 }
