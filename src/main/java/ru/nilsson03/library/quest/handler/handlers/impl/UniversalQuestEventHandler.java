@@ -10,6 +10,7 @@ import org.bukkit.event.entity.EntityTameEvent;
 import org.bukkit.event.inventory.CraftItemEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.PlayerEvent;
+import org.bukkit.event.player.PlayerInteractEntityEvent;
 import ru.nilsson03.library.quest.handler.handlers.QuestEventHandler;
 import ru.nilsson03.library.quest.user.data.QuestUserData;
 import ru.nilsson03.library.quest.user.storage.QuestUsersStorage;
@@ -50,6 +51,10 @@ public class UniversalQuestEventHandler<T extends Event> implements QuestEventHa
     }
 
     private Player getPlayerFromEvent(T event) {
+        if (event instanceof PlayerInteractEntityEvent interactEntityEvent) {
+            return interactEntityEvent.getPlayer();
+        }
+
         if (event instanceof PlayerEvent playerEvent) {
             return playerEvent.getPlayer();
         }

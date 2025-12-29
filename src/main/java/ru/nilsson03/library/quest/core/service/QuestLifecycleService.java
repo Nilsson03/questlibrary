@@ -29,7 +29,6 @@ public class QuestLifecycleService {
             return;
         }
         
-        // Проверяем, не начат ли уже квест
         if (user.questIsStarted(quest)) {
             return;
         }
