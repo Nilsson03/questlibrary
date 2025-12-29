@@ -8,6 +8,7 @@ import ru.nilsson03.library.quest.condition.QuestCondition;
 import ru.nilsson03.library.quest.core.Quest;
 import ru.nilsson03.library.quest.core.service.QuestService;
 import ru.nilsson03.library.quest.meta.QuestMeta;
+import ru.nilsson03.library.quest.meta.impl.SimpleQuestMeta;
 import ru.nilsson03.library.quest.meta.parser.SimpleMetaParser;
 import ru.nilsson03.library.quest.objective.Objective;
 import ru.nilsson03.library.quest.objective.parser.ObjectiveParser;
@@ -59,9 +60,6 @@ public class BaseQuestLoader implements QuestLoader {
         }
     }
 
-    /**
-     * Парсит квест из конфигурации.
-     */
     private Quest parseQuest(ConfigurationSection config, File file) {
         String questKey = config.getString("key");
         if (questKey == null || questKey.trim().isEmpty()) {
@@ -71,7 +69,7 @@ public class BaseQuestLoader implements QuestLoader {
         String pluginName = questService.getPlugin().getName();
         Namespace questNamespace = Namespace.of(pluginName, questKey);
 
-        QuestMeta questMeta = parseMeta(config);
+        SimpleQuestMeta questMeta = (SimpleQuestMeta) parseMeta(config);
         Set<QuestCondition> conditions = parseConditions(config);
         List<Objective> objectives = parseObjectives(config);
         QuestReward reward = parseReward(config);
@@ -79,9 +77,6 @@ public class BaseQuestLoader implements QuestLoader {
         return new BaseQuestImpl(questNamespace, questMeta, conditions, objectives, reward);
     }
 
-    /**
-     * Парсит метаданные квеста.
-     */
     private QuestMeta parseMeta(ConfigurationSection config) {
         ConfigurationSection metaSection = config.getConfigurationSection("meta");
         if (metaSection == null) {
@@ -96,9 +91,6 @@ public class BaseQuestLoader implements QuestLoader {
         }
     }
 
-    /**
-     * Парсит условия квеста.
-     */
     private Set<QuestCondition> parseConditions(ConfigurationSection config) {
         ConfigurationSection conditionsSection = config.getConfigurationSection("conditions");
         if (conditionsSection == null) {
@@ -106,30 +98,19 @@ public class BaseQuestLoader implements QuestLoader {
         }
 
         Set<QuestCondition> conditions = new HashSet<>();
-
-        for (String conditionKey : conditionsSection.getKeys(false)) {
-            ConfigurationSection conditionSection = conditionsSection.getConfigurationSection(conditionKey);
-            if (conditionSection == null) {
-                questService.getPlugin().getLogger().warning("Invalid condition section: " + conditionKey);
-                continue;
+        
+        try {
+            QuestCondition condition = questService.getConditionParserRegistry().parse(conditionsSection);
+            if (condition != null) {
+                conditions.add(condition);
             }
-
-            try {
-                QuestCondition condition = questService.getConditionParserRegistry().parse(conditionSection);
-                if (condition != null) {
-                    conditions.add(condition);
-                }
-            } catch (Exception e) {
-                questService.getPlugin().getLogger().warning("Failed to parse condition '" + conditionKey + "': " + e.getMessage());
-            }
+        } catch (Exception e) {
+            questService.getPlugin().getLogger().warning("Failed to parse conditions: " + e.getMessage());
         }
 
         return conditions;
     }
 
-    /**
-     * Парсит цели квеста.
-     */
     private List<Objective> parseObjectives(ConfigurationSection config) {
         ConfigurationSection objectivesSection = config.getConfigurationSection("objectives");
         if (objectivesSection == null) {

@@ -45,14 +45,32 @@ public abstract class ParserRegistry<P extends Parser<O>, O> {
      * @throws IllegalArgumentException если тип условия неизвестен
      */
     public O parse(ConfigurationSection section) {
-        String parserType = section.getKeys(false)
-                                      .iterator()
-                                      .next();
-        P parser = parsers.get(parserType);
-        if (parser == null) {
-            throw new IllegalArgumentException("Unknown parser type: " + parserType);
+        String parserType = section.getString("type");
+        
+        if (parserType != null) {
+            P parser = parsers.get(parserType);
+            if (parser == null) {
+                throw new IllegalArgumentException("Unknown parser type: " + parserType);
+            }
+            return parser.parse(section);
         }
-        return parser.parse(section.getConfigurationSection(parserType));
+
+        String firstKey = section.getKeys(false)
+                                 .stream()
+                                 .findFirst()
+                                 .orElseThrow(() -> new IllegalArgumentException("No parser type found in section"));
+        
+        P parser = parsers.get(firstKey);
+        if (parser != null) {
+            return parser.parse(section.getConfigurationSection(firstKey));
+        }
+        
+        ConfigurationSection nestedSection = section.getConfigurationSection(firstKey);
+        if (nestedSection != null && nestedSection.contains("type")) {
+            return parse(nestedSection);
+        }
+        
+        throw new IllegalArgumentException("Unknown parser type: " + firstKey);
     }
 
     /**
@@ -96,4 +114,6 @@ public abstract class ParserRegistry<P extends Parser<O>, O> {
     }
 
     public abstract void onRegistryInit();
+    
+    public abstract void onRegistryAfterInit();
 }

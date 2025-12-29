@@ -1,5 +1,6 @@
 package ru.nilsson03.library.quest.core.service;
 
+import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 import ru.nilsson03.library.quest.condition.QuestCondition;
 import ru.nilsson03.library.quest.condition.parser.registry.ConditionParserRegistry;
@@ -45,6 +46,10 @@ public class QuestService {
         if (questUsersStorage != null) {
             this.questManager = new QuestManager(plugin, questUsersStorage, objectiveRegistry);
         }
+
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            this.conditionParseRegistry.onRegistryAfterInit();
+        }, 300);
     }
 
     public QuestService(Plugin plugin, QuestUsersStorage questUsersStorage) {

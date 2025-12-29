@@ -55,7 +55,7 @@ public class QuestEventHandlers {
                                                                                                     questUserData.incrementProgressQuestsWithObjectiveType(
                                                                                                             objectiveRegistry.getObjectiveType(
                                                                                                                     "BREAK_BLOCK"),
-                                                                                                            blockType.name(),
+                                                                                                            blockType,
                                                                                                             1);
                                                                                                 });
 
@@ -66,19 +66,22 @@ public class QuestEventHandlers {
                     objectiveRegistry.getObjectiveType("TRANSFORM_ENTITY"), entityType, 1);
         });
 
-        //        QuestEventHandler<PlayerPickupExperienceEvent> playerPickupExperienceEventQuestEventHandler = new UniversalQuestEventHandler<>(
-        //                questUsersStorage,
-        //                (event, questUserData) -> {
-        //                    questUserData.incrementProgressQuestsWithValueGoals(objectiveRegistry.getObjectiveType("GAIN_EXP"), event.getExperienceOrb().getExperience());
-        //                }
-        //        );
-
         QuestEventHandler<CraftItemEvent> craftItemEventQuestEventHandler = new UniversalQuestEventHandler<>(
                 questUsersStorage, (event, questUserData) -> {
             ItemStack itemStack = event.getCurrentItem();
-            int amount = itemStack.getAmount();
+            if (itemStack == null) return;
+            
+            Material material = itemStack.getType();
+            int amount;
+            
+            if (event.isShiftClick()) {
+                amount = getShiftClickAmount(event);
+            } else {
+                amount = itemStack.getAmount();
+            }
+            
             questUserData.incrementProgressQuestsWithObjectiveType(objectiveRegistry.getObjectiveType("CRAFT_ITEM"),
-                                                                   itemStack, amount);
+                                                                   material, amount);
         });
 
         QuestEventHandler<BlockPlaceEvent> blockPlaceEventQuestEventHandler = new UniversalQuestEventHandler<>(
@@ -126,17 +129,7 @@ public class QuestEventHandlers {
                 questUsersStorage, (event, questUserData) -> {
             questUserData.incrementProgressQuestsWithValueGoals(objectiveRegistry.getObjectiveType("ENCHANT"), 1);
         });
-
-        QuestEventHandler<PlayerMoveEvent> playerMoveEventQuestEventHandler = new UniversalQuestEventHandler<>(
-                questUsersStorage, (event, questUserData) -> {
-            questUserData.incrementProgressQuestsWithValueGoals(objectiveRegistry.getObjectiveType("MOVE"), 1);
-        });
-
-        QuestEventHandler<PlayerMoveEvent> playerRideHorseEventQuestEventHandler = new UniversalQuestEventHandler<>(
-                questUsersStorage, (event, questUserData) -> {
-            questUserData.incrementProgressQuestsWithValueGoals(objectiveRegistry.getObjectiveType("RIDE_HORSE"), 1);
-        });
-
+        
         QuestEventHandler<PlayerInteractEntityEvent> playerInteractEntityEventQuestEventHandler = new UniversalQuestEventHandler<>(
                 questUsersStorage, (event, questUserData) -> {
             questUserData.incrementProgressQuestsWithValueGoals(objectiveRegistry.getObjectiveType("TRADE_VILLAGER"),
@@ -195,8 +188,7 @@ public class QuestEventHandlers {
             put("ANVIL", inventoryClickEventQuestEventHandlerAnvil);
             put("SMELT_ITEM", inventoryClickEventQuestEventHandlerSmelt);
             put("ENCHANT", enchantItemEventQuestEventHandler);
-            put("MOVE", playerMoveEventQuestEventHandler);
-            put("RIDE_HORSE", playerRideHorseEventQuestEventHandler);
+            // "MOVE" и "RIDE_HORSE" обрабатываются через MovementTracker
             put("TRADE_VILLAGER", playerInteractEntityEventQuestEventHandler);
             put("DRINK_POTION", playerItemConsumeEventQuestEventHandlerDrinkPotion);
             put("EAT_ITEM", playerItemConsumeEventQuestEventHandlerEat);
@@ -208,5 +200,17 @@ public class QuestEventHandlers {
         for (Map.Entry<String, QuestEventHandler<?>> entry : handlers.entrySet()) {
             eventManager.registerHandler(objectiveRegistry.getObjectiveType(entry.getKey()), entry.getValue());
         }
+    }
+    
+    private int getShiftClickAmount(CraftItemEvent event) {
+        int maxCraftable = 64;
+        
+        for (ItemStack ingredient : event.getInventory().getMatrix()) {
+            if (ingredient != null && !ingredient.getType().isAir()) {
+                maxCraftable = Math.min(maxCraftable, ingredient.getAmount());
+            }
+        }
+        
+        return maxCraftable * event.getRecipe().getResult().getAmount();
     }
 }

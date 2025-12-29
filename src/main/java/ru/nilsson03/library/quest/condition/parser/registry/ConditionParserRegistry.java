@@ -5,7 +5,9 @@ import org.bukkit.plugin.Plugin;
 import ru.nilsson03.library.quest.condition.QuestCondition;
 import ru.nilsson03.library.quest.condition.parser.impl.AndConditionParser;
 import ru.nilsson03.library.quest.condition.parser.impl.HasItemConditionParser;
+import ru.nilsson03.library.quest.condition.parser.impl.LevelConditionParser;
 import ru.nilsson03.library.quest.condition.parser.impl.OrConditionParser;
+import ru.nilsson03.library.quest.condition.parser.impl.PersmissionConditionParser;
 import ru.nilsson03.library.quest.condition.parser.impl.QuestCompletedConditionParser;
 import ru.nilsson03.library.quest.exception.QuestStorageException;
 import ru.nilsson03.library.quest.parser.Parser;
@@ -49,11 +51,17 @@ public class ConditionParserRegistry extends ParserRegistry<Parser<QuestConditio
         registerParser(pluginName, "has_item", new HasItemConditionParser());
         registerParser(pluginName, "and", new AndConditionParser(this));
         registerParser(pluginName, "or", new OrConditionParser(this));
+        registerParser(pluginName, "permission", new PersmissionConditionParser());
+        registerParser(pluginName, "level", new LevelConditionParser());
+    }
+    
+    @Override
+    public void onRegistryAfterInit() {
         try {
             registerParser(pluginName, "quest_completed", new QuestCompletedConditionParser(plugin));
         } catch (QuestStorageException exception) {
             plugin.getLogger()
-                  .warning("Произошла ошибка при инициализации ConditionParseRegistry: " + exception.getMessage());
+                  .warning("Произошла ошибка при регистрации QuestCompletedConditionParser: " + exception.getMessage());
         }
     }
 }

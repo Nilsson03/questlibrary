@@ -75,6 +75,15 @@ public interface QuestUserData {
     QuestProgress getProgressByQuestOrThrow(Quest quest) throws QuestAlreadyCompletedException;
 
     /**
+     * Получает все прогрессы игрока по квесту (для всех objectives).
+     *
+     * @param quest Квест.
+     * @return Список прогрессов по всем objectives квеста.
+     * @throws QuestAlreadyCompletedException если квест уже завершен.
+     */
+    List<QuestProgress> getAllProgressForQuest(Quest quest) throws QuestAlreadyCompletedException;
+
+    /**
      * Хранится/есть ли информация о полученных игроком наградах за квесты
      * @return true or false
      */
@@ -126,4 +135,10 @@ public interface QuestUserData {
      * @return true or false
      */
     boolean isActiveQuest(Quest quest);
+    
+    /**
+     * Удаляет все прогрессы указанного квеста из списка активных квестов
+     * @param quest квест, прогрессы которого нужно удалить
+     */
+    void removeQuestProgress(Quest quest);
 }

@@ -86,7 +86,7 @@ public class QuestProgressFormatter {
         
         for (int i = 0; i < progressList.size(); i++) {
             QuestProgress questProgress = progressList.get(i);
-            result.add((i + 1) + ". " + formatObjectiveHeader(questProgress.objective(), questProgress.isCompleted()));
+            result.add(INCOMPLETE_COLOR + (i + 1) + ". " + RESET + formatObjectiveHeader(questProgress.objective(), questProgress.isCompleted()));
             
             Map<Goal, Long> progress = questProgress.getProgress();
             for (Goal goal : questProgress.objective().goals()) {
@@ -123,19 +123,24 @@ public class QuestProgressFormatter {
         if (isCompleted) {
             return COMPLETE_COLOR + "✓ " + STRIKETHROUGH + goalName + RESET;
         } else {
-            String progressText = PROGRESS_COLOR + currentProgress + RESET + "/" + PROGRESS_COLOR + requiredProgress + RESET;
+            String progressText = PROGRESS_COLOR + currentProgress + RESET + INCOMPLETE_COLOR + "/" + RESET + PROGRESS_COLOR + requiredProgress + RESET;
             return INCOMPLETE_COLOR + "○ " + goalName + " " + progressText + RESET;
         }
     }
 
     /**
      * Получает читаемое имя задачи.
+     * Использует description если доступно, иначе форматирует ключ.
      */
     private static String formatObjectiveName(Objective objective) {
+        // Если есть описание, используем его
+        if (objective.description() != null && !objective.description().isEmpty()) {
+            return objective.description();
+        }
+        
         String key = objective.key();
         String typeName = objective.type().key();
         
-        // Преобразуем ключ в читаемый формат
         String readableName = key.replace("_", " ");
         readableName = capitalizeWords(readableName);
         
@@ -155,8 +160,39 @@ public class QuestProgressFormatter {
         } else if (goal instanceof NumericGoal) {
             return "Значение";
         } else {
-            return goal.toString();
+            String goalStr = goal.toString();
+            if (goalStr.startsWith("EnchantWithLevel(")) {
+                return formatEnchantGoalName(goalStr);
+            }
+            return goalStr;
         }
+    }
+    
+    /**
+     * Форматирует имя цели зачарования в читаемый вид.
+     */
+    private static String formatEnchantGoalName(String goalStr) {
+        try {
+            if (goalStr.contains("enchant=")) {
+                int enchantStart = goalStr.indexOf("enchant=") + 8;
+                int enchantEnd = goalStr.indexOf(",", enchantStart);
+                if (enchantEnd == -1) enchantEnd = goalStr.indexOf(")", enchantStart);
+                String enchantName = goalStr.substring(enchantStart, enchantEnd);
+                
+                String levelInfo = "";
+                if (goalStr.contains("level=")) {
+                    int levelStart = goalStr.indexOf("level=") + 6;
+                    int levelEnd = goalStr.indexOf(",", levelStart);
+                    if (levelEnd == -1) levelEnd = goalStr.indexOf(")", levelStart);
+                    levelInfo = " " + goalStr.substring(levelStart, levelEnd);
+                }
+                
+                return "Зачаровать " + capitalizeWords(enchantName.replace("_", " ")) + levelInfo;
+            }
+        } catch (Exception e) {
+            // Fallback to original string
+        }
+        return goalStr;
     }
 
     /**
@@ -171,6 +207,9 @@ public class QuestProgressFormatter {
      * Форматирует имя сущности в читаемый вид.
      */
     private static String formatEntityName(EntityType entityType) {
+        if (entityType == null) {
+            return "Unknown Entity";
+        }
         String name = entityType.name().toLowerCase().replace("_", " ");
         return capitalizeWords(name);
     }
@@ -213,11 +252,13 @@ public class QuestProgressFormatter {
         
         double percentage = totalRequired > 0 ? (double) totalCurrent / totalRequired * 100 : 0;
         
+        String objectiveName = formatObjectiveName(objective);
+        
         if (questProgress.isCompleted()) {
-            return COMPLETE_COLOR + "✓ " + STRIKETHROUGH + objective.key() + RESET + " " + 
+            return COMPLETE_COLOR + "✓ " + STRIKETHROUGH + objectiveName + RESET + " " + 
                    COMPLETE_COLOR + "(100%)" + RESET;
         } else {
-            return INCOMPLETE_COLOR + "○ " + objective.key() + RESET + " " + 
+            return INCOMPLETE_COLOR + "○ " + objectiveName + RESET + " " + 
                    PROGRESS_COLOR + String.format("(%.0f%%)", percentage) + RESET;
         }
     }

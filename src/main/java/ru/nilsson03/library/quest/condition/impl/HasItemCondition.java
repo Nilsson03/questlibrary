@@ -11,10 +11,16 @@ import ru.nilsson03.library.quest.user.data.QuestUserData;
 public class HasItemCondition implements QuestCondition {
     private final Material itemType;
     private final int amount;
+    private final ConditionType conditionType;
 
     public HasItemCondition(Material itemType, int amount) {
+        this(itemType, amount, ConditionType.START);
+    }
+    
+    public HasItemCondition(Material itemType, int amount, ConditionType conditionType) {
         this.itemType = itemType;
         this.amount = amount;
+        this.conditionType = conditionType;
     }
 
     @Override
@@ -36,5 +42,10 @@ public class HasItemCondition implements QuestCondition {
             }
         }
         return count >= amount;
+    }
+    
+    @Override
+    public ConditionType getType() {
+        return conditionType;
     }
 }

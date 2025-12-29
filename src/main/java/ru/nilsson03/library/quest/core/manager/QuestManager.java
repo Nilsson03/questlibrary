@@ -15,6 +15,7 @@ import ru.nilsson03.library.quest.quest.completer.CompleteStatus;
 import ru.nilsson03.library.quest.quest.completer.registry.QuestCompleterRegistry;
 import ru.nilsson03.library.quest.user.data.QuestUserData;
 import ru.nilsson03.library.quest.user.storage.QuestUsersStorage;
+import ru.nilsson03.library.quest.tracker.MovementTracker;
 
 /**
  * Менеджер для управления квестами, а так же остальными компонентами, которые к ним относятся
@@ -26,6 +27,8 @@ public class QuestManager {
 
     private final QuestLifecycleService questLifecycleService;
     private final QuestEventManager questEventManager;
+    private final QuestProgressService questProgressService;
+    private final MovementTracker movementTracker;
 
     /**
      * Конструктор класса
@@ -43,12 +46,21 @@ public class QuestManager {
         QuestCompleterRegistry questCompleterRegistry = new QuestCompleterRegistry(questUsersStorage);
         questCompleterRegistry.onRegisterInit();
 
-        QuestProgressService questProgressService = new QuestProgressService(factoryRegistry);
+        this.questProgressService = new QuestProgressService(factoryRegistry);
         this.questLifecycleService = new QuestLifecycleService(questProgressService, questCompleterRegistry);
+        
+        this.movementTracker = new MovementTracker(plugin, questUsersStorage, objectiveRegistry);
     }
 
     public void registerEventHandlers() {
         this.questEventManager.register();
+        this.movementTracker.start();
+    }
+    
+    public void shutdown() {
+        if (this.movementTracker != null) {
+            this.movementTracker.stop();
+        }
     }
 
     /**

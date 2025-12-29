@@ -3,6 +3,8 @@ package ru.nilsson03.library.quest.objective.parser;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
+
+import ru.nilsson03.library.bukkit.util.log.ConsoleLogger;
 import ru.nilsson03.library.quest.objective.Objective;
 import ru.nilsson03.library.quest.objective.goal.Goal;
 import ru.nilsson03.library.quest.objective.goal.helper.GoalHelper;
@@ -11,15 +13,20 @@ import ru.nilsson03.library.quest.objective.registry.ObjectiveRegistry;
 import ru.nilsson03.library.quest.objective.registry.ObjectiveType;
 import ru.nilsson03.library.quest.parser.Parser;
 
+import java.io.Console;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 public class ObjectiveParser implements Parser<Objective> {
 
     private final ObjectiveRegistry objectiveRegistry;
     private final ObjectiveGoalFactoryRegistry objectiveGoalRegistry;
+    private final Set<String> usedObjectiveKeys = new HashSet<>();
 
     public ObjectiveParser(
             final ObjectiveRegistry objectiveRegistry,
@@ -31,10 +38,17 @@ public class ObjectiveParser implements Parser<Objective> {
     @Override
     public Objective parse(ConfigurationSection section) {
         String key = section.getString("key");
-        if (key == null || key.trim()
-                              .isEmpty()) {
-            throw new IllegalArgumentException("Objective key cannot be null or empty");
+        
+        if (key == null || key.isEmpty()) {
+            key = UUID.randomUUID().toString();
+            ConsoleLogger.warn("questlibrary", "Objective key is missing in config, generated random key: %s", key);
         }
+        
+        if (usedObjectiveKeys.contains(key)) {
+            throw new IllegalArgumentException("Duplicate objective key detected: " + key + ". Each objective must have a unique key!");
+        }
+        
+        usedObjectiveKeys.add(key);
 
         ConfigurationSection goalsSection = section.getConfigurationSection("goals");
 

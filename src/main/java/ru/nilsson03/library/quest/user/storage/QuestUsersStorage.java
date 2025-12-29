@@ -129,4 +129,10 @@ public class QuestUsersStorage {
     public Plugin plugin() {
         return null;
     }
+    
+    public void saveAllData() {
+        for (QuestUserData userData : usersData.values()) {
+            saveData(userData);
+        }
+    }
 }

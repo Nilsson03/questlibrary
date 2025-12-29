@@ -1,19 +1,19 @@
 package ru.nilsson03.library.quest.condition.parser.impl;
 
-import org.bukkit.Material;
 import org.bukkit.configuration.ConfigurationSection;
 import ru.nilsson03.library.quest.condition.QuestCondition;
-import ru.nilsson03.library.quest.condition.impl.HasItemCondition;
+import ru.nilsson03.library.quest.condition.impl.LevelCondition;
 import ru.nilsson03.library.quest.parser.Parser;
 
-public class HasItemConditionParser implements Parser<QuestCondition> {
+public class LevelConditionParser implements Parser<QuestCondition> {
 
     @Override
     public QuestCondition parse(ConfigurationSection section) {
-        Material material = Material.valueOf(section.getString("material"));
-        int amount = section.getInt("amount");
+        int minLevel = section.getInt("min-level", 0);
+        int maxLevel = section.getInt("max-level", Integer.MAX_VALUE);
         QuestCondition.ConditionType conditionType = parseConditionType(section);
-        return new HasItemCondition(material, amount, conditionType);
+        
+        return new LevelCondition(minLevel, maxLevel, conditionType);
     }
     
     private QuestCondition.ConditionType parseConditionType(ConfigurationSection section) {

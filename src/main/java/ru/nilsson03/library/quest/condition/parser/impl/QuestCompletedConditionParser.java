@@ -52,6 +52,18 @@ public class QuestCompletedConditionParser implements Parser<QuestCondition> {
                   .warning(errorMessage);
             throw new NullPointerException(errorMessage);
         }
-        return new QuestCompletedCondition(requiredQuest);
+        
+        QuestCondition.ConditionType conditionType = parseConditionType(section);
+        return new QuestCompletedCondition(requiredQuest, conditionType);
+    }
+    
+    private QuestCondition.ConditionType parseConditionType(ConfigurationSection section) {
+        String typeString = section.getString("condition-type", "START");
+        try {
+            return QuestCondition.ConditionType.valueOf(typeString.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            plugin.getLogger().warning("Invalid condition-type: " + typeString + ", using START as default");
+            return QuestCondition.ConditionType.START;
+        }
     }
 }

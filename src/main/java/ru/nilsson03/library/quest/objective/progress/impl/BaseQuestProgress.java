@@ -5,10 +5,12 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
 import ru.nilsson03.library.quest.core.Quest;
+import ru.nilsson03.library.quest.core.event.UserCompleteQuestEvent;
 import ru.nilsson03.library.quest.core.event.UserQuestProgressEvent;
 import ru.nilsson03.library.quest.objective.Objective;
 import ru.nilsson03.library.quest.objective.goal.Goal;
 import ru.nilsson03.library.quest.objective.progress.QuestProgress;
+import ru.nilsson03.library.quest.quest.completer.CompleteStatus;
 import ru.nilsson03.library.quest.user.data.QuestUserData;
 
 import java.util.*;
@@ -61,29 +63,49 @@ public class BaseQuestProgress implements QuestProgress {
      * {@inheritDoc}
      */
     public void setProgress(Goal goal, long progress, boolean checkPlayerEffects) {
+        setProgress(goal, progress, checkPlayerEffects, true);
+    }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void setProgressDirectly(Goal goal, long progress) {
+        Objects.requireNonNull(goal, "Goal cannot be null");
+        
+        try {
+            this.progress.put(goal, progress);
+        } catch (UnsupportedOperationException exception) {
+            Map<Goal, Long> newProgressMap = new HashMap<>(this.progress);
+            newProgressMap.put(goal, progress);
+            this.progress = newProgressMap;
+        }
+    }
+    
+    public void setProgress(Goal goal, long progress, boolean checkPlayerEffects, boolean checkCompletion) {
         Objects.requireNonNull(goal, "Goal cannot be null");
 
         Player player = Bukkit.getPlayer(user.uuid());
-
         Preconditions.checkArgument(player != null, "Player not found");
+        
+        boolean canIncrement = canIncrementProgress(goal, objective);
 
-        if (canIncrementProgress(goal, objective)) {
-
+        if (canIncrement) {
             if (checkPlayerEffects && !getObjective().hasAllPotionEffects(player)) {
                 return;
             }
 
             long requiredProgress = objective.getRequiredProgress(goal);
             long currentProgress = getValue(goal);
-
-            long newProgress = currentProgress + progress;
+            long newProgress = progress;
+            
             if (newProgress > requiredProgress) {
                 newProgress = requiredProgress;
             }
 
             UserQuestProgressEvent event = new UserQuestProgressEvent(user, quest, objective, goal, currentProgress, newProgress);
-            Bukkit.getPluginManager()
-                  .callEvent(event);
+            Bukkit.getPluginManager().callEvent(event);
+            
             if (event.isCancelled()) {
                 return;
             }
@@ -95,7 +117,44 @@ public class BaseQuestProgress implements QuestProgress {
                 newProgressMap.put(goal, event.getNewValue());
                 this.progress = newProgressMap;
             }
+            
+            if (checkCompletion) {
+                checkAndCompleteQuest();
+            }
         }
+    }
+    
+    /**
+     * Проверяет, завершены ли все objectives квеста, и если да - вызывает событие завершения
+     */
+    private void checkAndCompleteQuest() {
+        List<QuestProgress> allProgress = user.getAllProgressForQuest(quest);
+        
+        boolean allObjectivesCompleted = allProgress.stream()
+                .allMatch(QuestProgress::isCompleted);
+        
+        if (allObjectivesCompleted && !user.questIsComplete(quest)) {
+            UserCompleteQuestEvent event = new UserCompleteQuestEvent(user, quest, CompleteStatus.SUCCESS);
+            Bukkit.getPluginManager().callEvent(event);
+            
+            if (!event.isCancelled()) {
+                user.addCompletedQuest(quest);
+                user.removeQuestProgress(quest);
+                quest.rewards().executeCommands(user);
+            }
+        }
+    }
+
+    @Override
+    public boolean canIncrementProgress(Goal goal, Objective objective) {
+        if (!objective.goals().contains(goal)) {
+            return false;
+        }
+        
+        long currentProgress = getValue(goal);
+        long requiredProgress = goal.targetValue();
+        
+        return currentProgress < requiredProgress;
     }
 
     /**

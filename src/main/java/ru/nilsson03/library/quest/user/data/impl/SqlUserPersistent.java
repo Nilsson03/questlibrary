@@ -70,7 +70,7 @@ public class SqlUserPersistent implements UserDataPersistent {
                 CREATE TABLE IF NOT EXISTS quest_users (
                     uuid VARCHAR(36) PRIMARY KEY,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
                 """;
         try (Statement statement = connection.createStatement()) {
@@ -81,11 +81,11 @@ public class SqlUserPersistent implements UserDataPersistent {
     private void createCompletedQuestsTable(Connection connection) throws SQLException {
         String sql = """
                 CREATE TABLE IF NOT EXISTS quest_completed (
-                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
                     user_uuid VARCHAR(36) NOT NULL,
                     quest_key VARCHAR(255) NOT NULL,
                     completed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    UNIQUE KEY unique_user_quest (user_uuid, quest_key),
+                    UNIQUE (user_uuid, quest_key),
                     FOREIGN KEY (user_uuid) REFERENCES quest_users(uuid) ON DELETE CASCADE
                 )
                 """;
@@ -97,12 +97,13 @@ public class SqlUserPersistent implements UserDataPersistent {
     private void createActiveProgressTable(Connection connection) throws SQLException {
         String sql = """
                 CREATE TABLE IF NOT EXISTS quest_active_progress (
-                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
                     user_uuid VARCHAR(36) NOT NULL,
                     quest_key VARCHAR(255) NOT NULL,
+                    objective_key VARCHAR(255) NOT NULL,
                     objective_type VARCHAR(100) NOT NULL,
                     started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    UNIQUE KEY unique_user_quest_progress (user_uuid, quest_key),
+                    UNIQUE (user_uuid, quest_key, objective_key),
                     FOREIGN KEY (user_uuid) REFERENCES quest_users(uuid) ON DELETE CASCADE
                 )
                 """;
@@ -114,11 +115,12 @@ public class SqlUserPersistent implements UserDataPersistent {
     private void createProgressGoalsTable(Connection connection) throws SQLException {
         String sql = """
                 CREATE TABLE IF NOT EXISTS quest_progress_goals (
-                    id INT AUTO_INCREMENT PRIMARY KEY,
-                    progress_id INT NOT NULL,
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    progress_id INTEGER NOT NULL,
                     goal_key VARCHAR(255) NOT NULL,
                     current_value BIGINT NOT NULL DEFAULT 0,
                     target_value BIGINT NOT NULL,
+                    UNIQUE (progress_id, goal_key),
                     FOREIGN KEY (progress_id) REFERENCES quest_active_progress(id) ON DELETE CASCADE
                 )
                 """;
@@ -130,11 +132,11 @@ public class SqlUserPersistent implements UserDataPersistent {
     private void createReceiptsRewardsTable(Connection connection) throws SQLException {
         String sql = """
                 CREATE TABLE IF NOT EXISTS quest_receipts_rewards (
-                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
                     user_uuid VARCHAR(36) NOT NULL,
                     reward_uuid VARCHAR(36) NOT NULL,
-                    taken_count INT NOT NULL DEFAULT 0,
-                    UNIQUE KEY unique_user_reward (user_uuid, reward_uuid),
+                    taken_count INTEGER NOT NULL DEFAULT 0,
+                    UNIQUE (user_uuid, reward_uuid),
                     FOREIGN KEY (user_uuid) REFERENCES quest_users(uuid) ON DELETE CASCADE
                 )
                 """;
@@ -174,7 +176,7 @@ public class SqlUserPersistent implements UserDataPersistent {
     }
 
     private void ensureUserExists(Connection connection, UUID uuid) throws SQLException {
-        String sql = "INSERT IGNORE INTO quest_users (uuid) VALUES (?)";
+        String sql = "INSERT OR IGNORE INTO quest_users (uuid) VALUES (?)";
         try (PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setString(1, uuid.toString());
             statement.executeUpdate();
@@ -203,15 +205,16 @@ public class SqlUserPersistent implements UserDataPersistent {
         String deleteProgressSql = "DELETE FROM quest_active_progress WHERE user_uuid = ?";
         try (PreparedStatement statement = connection.prepareStatement(deleteProgressSql)) {
             statement.setString(1, userData.uuid().toString());
-            statement.executeUpdate();
+            int deleted = statement.executeUpdate();
+            ConsoleLogger.debug(plugin.getName(), "Deleted %d old progress records for user %s", deleted, userData.uuid());
         }
 
         String insertProgressSql = """
-                INSERT INTO quest_active_progress (user_uuid, quest_key, objective_type) 
-                VALUES (?, ?, ?)
+                INSERT INTO quest_active_progress (user_uuid, quest_key, objective_key, objective_type) 
+                VALUES (?, ?, ?, ?)
                 """;
         String insertGoalSql = """
-                INSERT INTO quest_progress_goals (progress_id, goal_key, current_value, target_value) 
+                INSERT OR REPLACE INTO quest_progress_goals (progress_id, goal_key, current_value, target_value) 
                 VALUES (?, ?, ?, ?)
                 """;
 
@@ -219,12 +222,19 @@ public class SqlUserPersistent implements UserDataPersistent {
             try (PreparedStatement progressStmt = connection.prepareStatement(insertProgressSql, Statement.RETURN_GENERATED_KEYS)) {
                 progressStmt.setString(1, userData.uuid().toString());
                 progressStmt.setString(2, progress.quest().questUniqueKey().getKey());
-                progressStmt.setString(3, progress.objective().type().key());
+                progressStmt.setString(3, progress.objective().key());
+                progressStmt.setString(4, progress.objective().type().key());
                 progressStmt.executeUpdate();
 
                 ResultSet rs = progressStmt.getGeneratedKeys();
                 if (rs.next()) {
                     int progressId = rs.getInt(1);
+                    
+                    String deleteOldGoalsSql = "DELETE FROM quest_progress_goals WHERE progress_id = ?";
+                    try (PreparedStatement deleteGoalsStmt = connection.prepareStatement(deleteOldGoalsSql)) {
+                        deleteGoalsStmt.setInt(1, progressId);
+                        deleteGoalsStmt.executeUpdate();
+                    }
 
                     try (PreparedStatement goalStmt = connection.prepareStatement(insertGoalSql)) {
                         for (Goal goal : progress.objective().goals()) {
@@ -356,7 +366,7 @@ public class SqlUserPersistent implements UserDataPersistent {
     private List<QuestProgress> loadActiveProgress(Connection connection, UUID uuid, QuestUserData userData) throws SQLException {
         List<QuestProgress> progressList = new ArrayList<>();
         String sql = """
-                SELECT id, quest_key, objective_type 
+                SELECT id, quest_key, objective_key, objective_type 
                 FROM quest_active_progress 
                 WHERE user_uuid = ?
                 """;
@@ -368,13 +378,13 @@ public class SqlUserPersistent implements UserDataPersistent {
             while (rs.next()) {
                 int progressId = rs.getInt("id");
                 String questKey = rs.getString("quest_key");
-                String objectiveType = rs.getString("objective_type");
+                String objectiveKey = rs.getString("objective_key");
                 
                 try {
                     Quest quest = questStorage.getQuestByUniqueKeyOrThrow(questKey);
                     Map<String, Long> goalProgress = loadGoalProgress(connection, progressId);
                     
-                    QuestProgress progress = createQuestProgress(quest, objectiveType, goalProgress, userData);
+                    QuestProgress progress = createQuestProgress(quest, objectiveKey, goalProgress, userData);
                     if (progress != null) {
                         progressList.add(progress);
                     }
@@ -403,7 +413,7 @@ public class SqlUserPersistent implements UserDataPersistent {
         return goalProgress;
     }
 
-    private QuestProgress createQuestProgress(Quest quest, String objectiveTypeKey, 
+    private QuestProgress createQuestProgress(Quest quest, String objectiveKey, 
                                              Map<String, Long> goalProgress, QuestUserData userData) {
         if (!(quest instanceof BaseQuest)) {
             return null;
@@ -411,15 +421,16 @@ public class SqlUserPersistent implements UserDataPersistent {
         
         BaseQuest baseQuest = (BaseQuest) quest;
         return baseQuest.objectives().stream()
-                .filter(objective -> objective.type().key().equals(objectiveTypeKey))
+                .filter(objective -> objective.key().equals(objectiveKey))
                 .findFirst()
                 .map(objective -> {
-                    QuestProgress progress = new ru.nilsson03.library.quest.objective.progress.impl.BaseQuestProgress(
-                            userData, quest, objective);
+                    ru.nilsson03.library.quest.objective.progress.impl.BaseQuestProgress progress = 
+                            new ru.nilsson03.library.quest.objective.progress.impl.BaseQuestProgress(
+                                    userData, quest, objective);
                     for (Goal goal : objective.goals()) {
                         Long currentValue = goalProgress.get(goal.toString());
                         if (currentValue != null && currentValue > 0) {
-                            progress.incrementProgress(goal, currentValue, false);
+                            progress.setProgressDirectly(goal, currentValue);
                         }
                     }
                     return progress;

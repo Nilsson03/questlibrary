@@ -53,7 +53,7 @@ public class BaseQuestUserData implements QuestUserData {
         objectivesProgress.forEach(progress -> {
             Objective objective = progress.objective();
             for (Goal goal : objective.goals()) {
-                progress.incrementProgress(goal, value, false);
+                progress.incrementProgress(goal, value);
             }
         });
     }
@@ -69,10 +69,15 @@ public class BaseQuestUserData implements QuestUserData {
         }
 
         List<QuestProgress> objectivesProgress = getProgressByObjectiveType(objectiveType);
+        
         objectivesProgress.forEach(progress -> {
             Objective objective = progress.objective();
+            
             Optional<Goal> optionalGoal = objective.getGoal(object);
-            optionalGoal.ifPresent(goal -> progress.incrementProgress(goal, value, false));
+            if (optionalGoal.isPresent()) {
+                Goal goal = optionalGoal.get();
+                progress.incrementProgress(goal, value);
+            }
         });
     }
 
@@ -162,15 +167,15 @@ public class BaseQuestUserData implements QuestUserData {
     }
 
     /**
-     * Проверяет, есть ли уже прогресс по указанному квесту.
+     * Проверяет, есть ли уже прогресс по указанному квесту и objective.
      *
      * @param objectiveProgress Прогресс по квесту.
      * @return true, если прогресс уже существует, иначе false.
      */
     private boolean progressQuestAlreadyFoundInMap(QuestProgress objectiveProgress) {
         return this.questsProgress.stream()
-                .anyMatch(progress -> progress.quest()
-                        .equals(objectiveProgress.quest()));
+                .anyMatch(progress -> progress.quest().equals(objectiveProgress.quest()) 
+                        && progress.objective().equals(objectiveProgress.objective()));
     }
 
     /**
@@ -196,6 +201,22 @@ public class BaseQuestUserData implements QuestUserData {
                         .equals(quest))
                 .findFirst()
                 .orElse(null);
+    }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public List<QuestProgress> getAllProgressForQuest(final Quest quest) throws QuestAlreadyCompletedException {
+
+        if (questIsComplete(quest)) {
+            throw new QuestAlreadyCompletedException("User already complete this quest, progress not available.");
+        }
+
+        return questsProgress.stream()
+                .filter(objectiveProgress -> objectiveProgress.quest()
+                        .equals(quest))
+                .collect(java.util.stream.Collectors.toList());
     }
 
      /**
@@ -259,5 +280,11 @@ public class BaseQuestUserData implements QuestUserData {
     public synchronized boolean isActiveQuest(Quest quest) {
         return questsProgress.stream()
                 .anyMatch(progress -> progress.quest().questUniqueKey().equals(quest.questUniqueKey()));
+    }
+    
+    @Override
+    public synchronized void removeQuestProgress(Quest quest) {
+        questsProgress.removeIf(progress -> 
+                progress.quest().questUniqueKey().equals(quest.questUniqueKey()));
     }
 }

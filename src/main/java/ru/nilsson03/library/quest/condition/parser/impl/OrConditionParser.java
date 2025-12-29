@@ -22,7 +22,6 @@ public class OrConditionParser implements Parser<QuestCondition> {
         Objects.requireNonNull(section, "Configuration section is null");
         List<QuestCondition> conditions = new ArrayList<>();
         for (String key : section.getKeys(false)) {
-
             if (section.getConfigurationSection(key) == null) {
                 continue;
             }

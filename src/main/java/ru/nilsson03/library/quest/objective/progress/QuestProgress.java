@@ -16,19 +16,12 @@ import java.util.UUID;
 
 public interface QuestProgress {
 
-    default void incrementProgress(Goal goal, long amount, boolean checkPlayerEffects, Runnable runnable) {
-        incrementProgress(goal, amount, checkPlayerEffects);
-        runnable.run();
-    }
-
     default void incrementProgress(Goal goal, long amount, Runnable runnable) {
-        incrementProgress(goal, amount, true);
+        incrementProgress(goal, amount);
         runnable.run();
     }
 
-    default boolean canIncrementProgress(Goal goal, Objective objective) {
-        return objective.contains(goal) && !isCompleted();
-    }
+    boolean canIncrementProgress(Goal goal, Objective objective);
 
     default Pair<Long, Long> calculateIncrProgressAndReturnRemain(Objective objective, Goal goal, long progress) {
         long requiredProgress = objective.getRequiredProgress(goal);
@@ -49,15 +42,19 @@ public interface QuestProgress {
      * @param goal   Цель, для которой увеличивается прогресс.
      * @param amount Количество, на которое увеличивается прогресс.
      */
-    default void incrementProgress(Goal goal, long amount, boolean checkPlayerEffects) {
+    default void incrementProgress(Goal goal, long amount) {
         Player player = Bukkit.getPlayer(userUuid());
 
         Preconditions.checkArgument(player != null, "Player not found");
 
-        if (!conditionsIsAchieve())
+        boolean conditionsAchieved = progressConditionsIsAchieve();
+        
+        if (!conditionsAchieved) {
             return;
+        }
 
-        setProgress(goal, amount, checkPlayerEffects);
+        long currentProgress = getValue(goal);
+        setProgress(goal, currentProgress + amount, true);
     }
 
     default boolean conditionsIsAchieve() {
@@ -65,6 +62,18 @@ public interface QuestProgress {
         for (QuestCondition questCondition : conditions) {
             if (!questCondition.isMet(getUser())) {
                 return false;
+            }
+        }
+        return true;
+    }
+    
+    default boolean progressConditionsIsAchieve() {
+        Set<QuestCondition> conditions = quest().conditions();
+        for (QuestCondition questCondition : conditions) {
+            if (questCondition.getType() == QuestCondition.ConditionType.PROGRESS) {
+                if (!questCondition.isMet(getUser())) {
+                    return false;
+                }
             }
         }
         return true;
@@ -83,8 +92,18 @@ public interface QuestProgress {
      *
      * @param goal     Цель, для которой устанавливается прогресс.
      * @param progress Значение прогресса.
+     * @param checkPlayerEffects Проверять ли эффекты игрока.
      */
     void setProgress(Goal goal, long progress, boolean checkPlayerEffects);
+    
+    /**
+     * Напрямую устанавливает прогресс без проверок и событий.
+     * Используется при загрузке данных из БД.
+     *
+     * @param goal     Цель, для которой устанавливается прогресс.
+     * @param progress Значение прогресса.
+     */
+    void setProgressDirectly(Goal goal, long progress);
 
     /**
      * Проверяет, выполнена ли цель.

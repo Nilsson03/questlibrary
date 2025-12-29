@@ -4,6 +4,7 @@ import com.google.common.base.Preconditions;
 import org.bukkit.plugin.Plugin;
 import ru.nilsson03.library.bukkit.file.FileHelper;
 import ru.nilsson03.library.bukkit.util.Namespace;
+import ru.nilsson03.library.bukkit.util.log.ConsoleLogger;
 import ru.nilsson03.library.quest.core.Quest;
 import ru.nilsson03.library.quest.storage.loader.QuestLoader;
 
@@ -34,10 +35,12 @@ public class QuestStorage {
         String questsFolderPath = Paths.get(plugin.getDataFolder()
                                                   .getPath(), "quests")
                                        .toString();
+        ConsoleLogger.info(plugin.getName(), "Quests folder Path %s", questsFolderPath);
 
         try {
             File questsDataFolder = FileHelper.getOrCreateDirectory(questsFolderPath);
             this.quests.addAll(questLoader.loadQuests(questsDataFolder));
+            ConsoleLogger.info(plugin.getName(), "Loaded %s quests", quests.size());
         } catch (Exception exception) {
             plugin.getLogger()
                   .severe("Failed to load quests from " + questsFolderPath);

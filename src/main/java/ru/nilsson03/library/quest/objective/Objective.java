@@ -69,6 +69,10 @@ public class Objective {
 
     public long getRequiredProgress(Object valueType) {
         Objects.requireNonNull(valueType, "Goal cannot be null");
+        
+        if (valueType instanceof Goal) {
+            return ((Goal) valueType).targetValue();
+        }
 
         return goals.stream()
                     .filter(goal -> goal.matches(valueType))

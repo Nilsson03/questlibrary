@@ -13,10 +13,12 @@ public class BaseRewardParser implements Parser<QuestReward> {
     @Override
     public QuestReward parse(ConfigurationSection section) {
         String uuidString = section.getString("uniqueIdentificationKey");
+        UUID uniqueIdentificationKey;
         if (uuidString == null) {
-            throw new IllegalArgumentException("uniqueIdentificationKey cannot be null");
+            uniqueIdentificationKey = UUID.randomUUID();
+        } else {
+            uniqueIdentificationKey = UUID.fromString(uuidString);
         }
-        UUID uniqueIdentificationKey = UUID.fromString(uuidString);
 
         List<String> commands = section.getStringList("commands");
         if (commands.isEmpty()) {

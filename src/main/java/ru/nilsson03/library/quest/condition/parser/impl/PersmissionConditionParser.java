@@ -14,6 +14,16 @@ public class PersmissionConditionParser implements Parser<QuestCondition> {
     public QuestCondition parse(ConfigurationSection section) {
         Objects.requireNonNull(section, "Configuration section is null");
         String permission = section.getString("permission");
-        return new PermissionCondition(permission);
+        QuestCondition.ConditionType conditionType = parseConditionType(section);
+        return new PermissionCondition(permission, conditionType);
+    }
+    
+    private QuestCondition.ConditionType parseConditionType(ConfigurationSection section) {
+        String typeString = section.getString("condition-type", "START");
+        try {
+            return QuestCondition.ConditionType.valueOf(typeString.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            return QuestCondition.ConditionType.START;
+        }
     }
 }

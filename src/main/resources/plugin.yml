@@ -3,4 +3,6 @@ version: '${project.version}'
 main: ru.nilsson03.library.quest.QuestLibrary
 api-version: 1.16
 authors: [Nilsson03]
+depend:
+  - BaseLibrary
 description: "The library for integration of quests into plugins."

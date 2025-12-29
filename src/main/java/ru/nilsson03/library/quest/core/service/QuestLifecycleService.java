@@ -28,6 +28,11 @@ public class QuestLifecycleService {
         if (user.questIsComplete(quest)) {
             return;
         }
+        
+        // Проверяем, не начат ли уже квест
+        if (user.questIsStarted(quest)) {
+            return;
+        }
 
         UserQuestStartEvent event = new UserQuestStartEvent(user, quest);
         Bukkit.getPluginManager()
