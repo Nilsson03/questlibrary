@@ -10,6 +10,7 @@ import ru.nilsson03.library.quest.objective.Objective;
 import ru.nilsson03.library.quest.objective.goal.Goal;
 import ru.nilsson03.library.quest.objective.progress.QuestProgress;
 import ru.nilsson03.library.quest.quest.completer.CompleteStatus;
+import ru.nilsson03.library.quest.quest.simple.BaseQuest;
 import ru.nilsson03.library.quest.user.data.QuestUserData;
 
 import java.util.*;
@@ -19,7 +20,7 @@ import java.util.stream.Collectors;
 public class BaseQuestProgress implements QuestProgress {
 
     private final QuestUserData user;
-    private final Quest quest;
+    private final BaseQuest quest;
     private final Objective objective;
     private Map<Goal, Long> progress;
 
@@ -30,7 +31,7 @@ public class BaseQuestProgress implements QuestProgress {
      * @param quest     Квест, к которому относится прогресс.
      * @param objective Цель, к которой относится прогресс.
      */
-    public BaseQuestProgress(QuestUserData user, Quest quest, Objective objective) {
+    public BaseQuestProgress(QuestUserData user, BaseQuest quest, Objective objective) {
         this(user, quest, objective, objective.goals()
                 .stream()
                 .collect(Collectors.toMap(Function.identity(), goal -> 0L)));
@@ -44,7 +45,7 @@ public class BaseQuestProgress implements QuestProgress {
      * @param objective Цель, к которой относится прогресс.
      * @param progress  Начальный прогресс.
      */
-    public BaseQuestProgress(QuestUserData user, Quest quest, Objective objective, Map<Goal, Long> progress) {
+    public BaseQuestProgress(QuestUserData user, BaseQuest quest, Objective objective, Map<Goal, Long> progress) {
         this.user = Objects.requireNonNull(user, "userUuid cannot be null");
         this.quest = Objects.requireNonNull(quest, "Quest cannot be null");
         this.objective = Objects.requireNonNull(objective, "Objective cannot be null");
@@ -191,7 +192,7 @@ public class BaseQuestProgress implements QuestProgress {
     /**
      * {@inheritDoc}
      */
-    public Quest quest() {
+    public BaseQuest quest() {
         return this.quest;
     }
 

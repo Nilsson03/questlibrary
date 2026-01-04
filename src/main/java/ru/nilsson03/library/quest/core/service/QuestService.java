@@ -64,8 +64,8 @@ public class QuestService {
         String pluginName = plugin.getName();
         
         this.objectiveRegistry = new ObjectiveRegistry();
-        this.conditionParserRegistry = new ConditionParserRegistry(plugin, pluginName);
-        this.metaParserRegistry = new MetaParserRegistry(plugin, pluginName);
+        this.conditionParserRegistry = new ConditionParserRegistry(plugin);
+        this.metaParserRegistry = new MetaParserRegistry(plugin);
         
         this.objectiveRegistry.onRegistryInit();
         this.conditionParserRegistry.onRegistryInit();

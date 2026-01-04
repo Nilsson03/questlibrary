@@ -7,6 +7,7 @@ import ru.nilsson03.library.collection.Pair;
 import ru.nilsson03.library.quest.condition.QuestCondition;
 import ru.nilsson03.library.quest.objective.Objective;
 import ru.nilsson03.library.quest.objective.goal.Goal;
+import ru.nilsson03.library.quest.quest.simple.BaseQuest;
 import ru.nilsson03.library.quest.user.data.QuestUserData;
 
 import java.util.Map;
@@ -116,7 +117,7 @@ public interface QuestProgress {
      *
      * @return Квест.
      */
-    Quest quest();
+    BaseQuest quest();
 
     /**
      * Возвращает неизменяемую карту прогресса.

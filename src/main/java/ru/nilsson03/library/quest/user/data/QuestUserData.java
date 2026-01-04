@@ -4,6 +4,7 @@ import ru.nilsson03.library.quest.exception.QuestAlreadyCompletedException;
 import ru.nilsson03.library.quest.exception.UserAlreadyHasQuestProgressException;
 import ru.nilsson03.library.quest.objective.progress.QuestProgress;
 import ru.nilsson03.library.quest.objective.registry.ObjectiveType;
+import ru.nilsson03.library.quest.quest.simple.BaseQuest;
 import ru.nilsson03.library.quest.user.data.impl.QuestUserReceiptsRewardsData;
 
 import java.util.List;
@@ -28,7 +29,7 @@ public interface QuestUserData {
      * @param quest квест
      * @return true, если квест находится на стадии выполнения, иначе false
      */
-    boolean questIsStarted(Quest quest);
+    boolean questIsStarted(BaseQuest quest);
 
     /**
      * Возвращает список прогрессов по указанному типу цели.
@@ -62,7 +63,7 @@ public interface QuestUserData {
      * @param quest Квест.
      * @return true, если квест завершен, иначе false.
      */
-    boolean questIsComplete(Quest quest);
+    boolean questIsComplete(BaseQuest quest);
 
     /**
      * Возвращает прогресс по указанному квесту.
@@ -71,7 +72,7 @@ public interface QuestUserData {
      * @return Прогресс по квесту или null, если прогресс не найден.
      * @throws QuestAlreadyCompletedException если квест уже завершен.
      */
-    QuestProgress getProgressByQuestOrThrow(Quest quest) throws QuestAlreadyCompletedException;
+    QuestProgress getProgressByQuestOrThrow(BaseQuest quest) throws QuestAlreadyCompletedException;
 
     /**
      * Получает все прогрессы игрока по квесту (для всех objectives).
@@ -80,7 +81,7 @@ public interface QuestUserData {
      * @return Список прогрессов по всем objectives квеста.
      * @throws QuestAlreadyCompletedException если квест уже завершен.
      */
-    List<QuestProgress> getAllProgressForQuest(Quest quest) throws QuestAlreadyCompletedException;
+    List<QuestProgress> getAllProgressForQuest(BaseQuest quest) throws QuestAlreadyCompletedException;
 
     /**
      * Хранится/есть ли информация о полученных игроком наградах за квесты
@@ -100,7 +101,7 @@ public interface QuestUserData {
      * Получение завершённых у игрока квестов
      * @return список завершённых квестов
      */
-    List<Quest> completeQuests();
+    List<BaseQuest> completeQuests();
 
     /**
      * Идентификатор пользоватля
@@ -113,7 +114,7 @@ public interface QuestUserData {
      *
      * @param quest квест, который необходимо добавить в список выполненных
      */
-    void addCompletedQuest(Quest quest);
+    void addCompletedQuest(BaseQuest quest);
 
     /**
      * Получение активных квестов игрока
@@ -133,11 +134,11 @@ public interface QuestUserData {
      * @param quest Quest
      * @return true or false
      */
-    boolean isActiveQuest(Quest quest);
+    boolean isActiveQuest(BaseQuest quest);
     
     /**
      * Удаляет все прогрессы указанного квеста из списка активных квестов
      * @param quest квест, прогрессы которого нужно удалить
      */
-    void removeQuestProgress(Quest quest);
+    void removeQuestProgress(BaseQuest quest);
 }

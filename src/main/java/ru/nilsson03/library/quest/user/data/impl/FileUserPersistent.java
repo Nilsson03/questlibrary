@@ -204,15 +204,10 @@ public class FileUserPersistent implements UserDataPersistent {
                 BukkitConfig userFile = usersDirectory.getBukkitConfig(userFileName);
                 FileConfiguration config = userFile.getFileConfiguration();
 
-                // Удаляем квест из списка завершенных
                 List<String> completedQuests = new ArrayList<>(config.getStringList("completed_quests"));
                 completedQuests.remove(questKey);
                 config.set("completed_quests", completedQuests);
-
-                // Удаляем прогресс квеста
                 config.set("active_progresses." + questKey, null);
-
-                // Удаляем время завершения
                 config.set("quest_completion_times." + questKey, null);
 
                 userFile.saveConfiguration();

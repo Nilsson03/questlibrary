@@ -5,10 +5,11 @@ import java.util.List;
 import org.bukkit.configuration.ConfigurationSection;
 
 import ru.nilsson03.library.quest.meta.DailyQuestMeta;
+import ru.nilsson03.library.quest.meta.QuestMeta;
 import ru.nilsson03.library.quest.meta.impl.SimpleDailyQuestMeta;
 import ru.nilsson03.library.quest.parser.Parser;
 
-public class DailyMetaParser implements Parser<DailyQuestMeta> {
+public class DailyMetaParser implements Parser<QuestMeta> {
 
     @Override
     public DailyQuestMeta parse(ConfigurationSection configurationSection) {

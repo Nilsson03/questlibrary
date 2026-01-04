@@ -7,6 +7,7 @@ import ru.nilsson03.library.quest.objective.Objective;
 import ru.nilsson03.library.quest.objective.goal.Goal;
 import ru.nilsson03.library.quest.objective.progress.QuestProgress;
 import ru.nilsson03.library.quest.objective.registry.ObjectiveType;
+import ru.nilsson03.library.quest.quest.simple.BaseQuest;
 import ru.nilsson03.library.quest.user.data.QuestUserData;
 
 import java.util.*;
@@ -15,7 +16,7 @@ import java.util.stream.Collectors;
 public class BaseQuestUserData implements QuestUserData {
 
     private final UUID uuid;
-    private final List<Quest> completeQuests;
+    private final List<BaseQuest> completeQuests;
     private final List<QuestProgress> questsProgress;
     private final QuestUserReceiptsRewardsData receiptsRewardsData;
 
@@ -30,7 +31,7 @@ public class BaseQuestUserData implements QuestUserData {
      * @see QuestUserReceiptsRewardsData
      */
     public BaseQuestUserData(
-            final UUID uuid, List<Quest> completeQuests,
+            final UUID uuid, List<BaseQuest> completeQuests,
             final List<QuestProgress> objectiveProgresses, QuestUserReceiptsRewardsData receiptsRewardsData)
             throws NullPointerException {
         this.uuid = Objects.requireNonNull(uuid, "User uuid cant be null");
@@ -109,7 +110,7 @@ public class BaseQuestUserData implements QuestUserData {
      * {@inheritDoc}
      */
     @Override
-    public synchronized boolean questIsStarted(Quest quest) {
+    public synchronized boolean questIsStarted(BaseQuest quest) {
         return questsProgress.stream()
                 .anyMatch(objectiveProgresses -> objectiveProgresses.quest()
                         .questUniqueKey()
@@ -181,7 +182,7 @@ public class BaseQuestUserData implements QuestUserData {
      * {@inheritDoc}
      */
     @Override
-    public boolean questIsComplete(final Quest quest) {
+    public boolean questIsComplete(BaseQuest quest) {
         return completeQuests.contains(quest);
     }
 
@@ -189,7 +190,7 @@ public class BaseQuestUserData implements QuestUserData {
      * {@inheritDoc}
      */
     @Override
-    public QuestProgress getProgressByQuestOrThrow(final Quest quest) throws QuestAlreadyCompletedException {
+    public QuestProgress getProgressByQuestOrThrow(BaseQuest quest) throws QuestAlreadyCompletedException {
 
         if (questIsComplete(quest)) {
             throw new QuestAlreadyCompletedException("User already complete this quest, progress not available.");
@@ -206,7 +207,7 @@ public class BaseQuestUserData implements QuestUserData {
      * {@inheritDoc}
      */
     @Override
-    public List<QuestProgress> getAllProgressForQuest(final Quest quest) throws QuestAlreadyCompletedException {
+    public List<QuestProgress> getAllProgressForQuest(BaseQuest quest) throws QuestAlreadyCompletedException {
 
         if (questIsComplete(quest)) {
             throw new QuestAlreadyCompletedException("User already complete this quest, progress not available.");
@@ -238,7 +239,7 @@ public class BaseQuestUserData implements QuestUserData {
      * {@inheritDoc}
      */
     @Override
-    public List<Quest> completeQuests() {
+    public List<BaseQuest> completeQuests() {
         return new ArrayList<>(completeQuests);
     }
 
@@ -254,7 +255,7 @@ public class BaseQuestUserData implements QuestUserData {
      * {@inheritDoc}
      */
     @Override
-    public synchronized void addCompletedQuest(Quest quest) {
+    public synchronized void addCompletedQuest(BaseQuest quest) {
         Objects.requireNonNull(quest, "Quest cannot be null");
 
         if (completeQuests.stream()
@@ -276,13 +277,13 @@ public class BaseQuestUserData implements QuestUserData {
     }
 
     @Override
-    public synchronized boolean isActiveQuest(Quest quest) {
+    public synchronized boolean isActiveQuest(BaseQuest quest) {
         return questsProgress.stream()
                 .anyMatch(progress -> progress.quest().questUniqueKey().equals(quest.questUniqueKey()));
     }
     
     @Override
-    public synchronized void removeQuestProgress(Quest quest) {
+    public synchronized void removeQuestProgress(BaseQuest quest) {
         questsProgress.removeIf(progress -> 
                 progress.quest().questUniqueKey().equals(quest.questUniqueKey()));
     }

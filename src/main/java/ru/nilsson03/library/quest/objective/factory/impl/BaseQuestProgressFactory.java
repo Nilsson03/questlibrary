@@ -12,11 +12,10 @@ import java.util.stream.Collectors;
 public class BaseQuestProgressFactory implements QuestProgressFactory {
 
     @Override
-    public Set<QuestProgress> createProgress(QuestUserData userData, Quest quest) {
-        BaseQuest baseQuest = (BaseQuest) quest;
-        return baseQuest.objectives()
+    public Set<QuestProgress> createProgress(QuestUserData userData, BaseQuest quest) {
+        return quest.objectives()
                         .stream()
-                        .map(objective -> new BaseQuestProgress(userData, baseQuest, objective))
+                        .map(objective -> new BaseQuestProgress(userData, quest, objective))
                         .collect(Collectors.toSet());
     }
 }

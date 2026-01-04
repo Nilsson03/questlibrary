@@ -5,6 +5,7 @@ import org.bukkit.scheduler.BukkitTask;
 import ru.nilsson03.library.NPlugin;
 import ru.nilsson03.library.bukkit.util.log.ConsoleLogger;
 import ru.nilsson03.library.quest.meta.DailyQuestMeta;
+import ru.nilsson03.library.quest.quest.simple.BaseQuest;
 import ru.nilsson03.library.quest.storage.QuestStorage;
 import ru.nilsson03.library.quest.user.data.QuestUserData;
 import ru.nilsson03.library.quest.user.data.UserDataPersistent;
@@ -62,7 +63,7 @@ public class QuestUpdateService {
 
     private void checkAndResetExpiredQuests() {
         try {
-            List<Quest> dailyQuests = getDailyQuests();
+            List<BaseQuest> dailyQuests = getDailyQuests();
             
             if (dailyQuests.isEmpty()) {
                 return;
@@ -70,7 +71,7 @@ public class QuestUpdateService {
 
             long currentTime = System.currentTimeMillis();
             
-            for (Quest quest : dailyQuests) {
+            for (BaseQuest quest : dailyQuests) {
                 if (!(quest.questMeta() instanceof DailyQuestMeta dailyMeta)) {
                     continue;
                 }
@@ -90,7 +91,7 @@ public class QuestUpdateService {
         }
     }
 
-    private void resetExpiredQuestForAllUsers(Quest quest, long currentTime, long updateIntervalMillis) {
+    private void resetExpiredQuestForAllUsers(BaseQuest quest, long currentTime, long updateIntervalMillis) {
         List<CompletableFuture<UUID>> resetFutures = new ArrayList<>();
 
         for (QuestUserData userData : getAllLoadedUsers()) {
@@ -116,7 +117,7 @@ public class QuestUpdateService {
             });
     }
 
-    private CompletableFuture<UUID> checkAndResetUserQuest(UUID uuid, Quest quest, 
+    private CompletableFuture<UUID> checkAndResetUserQuest(UUID uuid, BaseQuest quest,
                                                            long currentTime, long updateIntervalMillis) {
         return getQuestCompletionTimeAsync(uuid, quest)
             .thenCompose(completionTime -> {
@@ -133,14 +134,14 @@ public class QuestUpdateService {
             });
     }
 
-    private CompletableFuture<Void> resetQuestForUserAsync(UUID uuid, Quest quest) {
+    private CompletableFuture<Void> resetQuestForUserAsync(UUID uuid, BaseQuest quest) {
         return userDataPersistent.deleteQuestData(uuid, quest.questUniqueKey().getKey())
             .thenRun(() -> {
                 QuestUserData userData = questUsersStorage.getQuestUserData(uuid);
                 if (userData != null) {
                     userData.removeQuestProgress(quest);
                     
-                    List<Quest> completedQuests = userData.completeQuests();
+                    List<BaseQuest> completedQuests = userData.completeQuests();
                     completedQuests.removeIf(q -> q.questUniqueKey().equals(quest.questUniqueKey()));
                 }
                 
@@ -154,10 +155,10 @@ public class QuestUpdateService {
             });
     }
 
-    private List<Quest> getDailyQuests() {
-        List<Quest> dailyQuests = new ArrayList<>();
+    private List<BaseQuest> getDailyQuests() {
+        List<BaseQuest> dailyQuests = new ArrayList<>();
         
-        for (Quest quest : questStorage.getQuests()) {
+        for (BaseQuest quest : questStorage.getQuests()) {
             if (quest.questMeta() instanceof DailyQuestMeta) {
                 dailyQuests.add(quest);
             }
@@ -170,7 +171,7 @@ public class QuestUpdateService {
         return new ArrayList<>(questUsersStorage.getAllLoadedUsers());
     }
 
-    private CompletableFuture<Long> getQuestCompletionTimeAsync(UUID uuid, Quest quest) {
+    private CompletableFuture<Long> getQuestCompletionTimeAsync(UUID uuid, BaseQuest quest) {
         return CompletableFuture.supplyAsync(() -> 
             userDataPersistent.getQuestCompletionTime(uuid, quest.questUniqueKey().getKey())
         );

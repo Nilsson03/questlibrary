@@ -12,10 +12,8 @@ import java.util.function.Consumer;
 public class BaseQuestCompleter implements QuestCompleter {
 
     @Override
-    public CompleteStatus completeQuest(QuestUserData user, Quest quest, Consumer<QuestUserData> questUserDataConsumer) {
-        BaseQuest baseQuest = (BaseQuest) quest;
-
-        Set<QuestCondition> completeConditions = baseQuest.conditions();
+    public CompleteStatus completeQuest(QuestUserData user, BaseQuest quest, Consumer<QuestUserData> questUserDataConsumer) {
+        Set<QuestCondition> completeConditions = quest.conditions();
 
         for (QuestCondition questCondition : completeConditions) {
             if (!questCondition.isMet(user)) {

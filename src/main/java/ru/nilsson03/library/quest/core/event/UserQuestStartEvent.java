@@ -4,6 +4,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
+import ru.nilsson03.library.quest.quest.simple.BaseQuest;
 import ru.nilsson03.library.quest.user.data.QuestUserData;
 
 public class UserQuestStartEvent extends Event implements Cancellable {
@@ -11,10 +12,10 @@ public class UserQuestStartEvent extends Event implements Cancellable {
     private static final HandlerList HANDLERS = new HandlerList();
 
     private final QuestUserData questUserData;
-    private final Quest quest;
+    private final BaseQuest quest;
     private boolean cancelled;
 
-    public UserQuestStartEvent(QuestUserData questUserData, Quest quest) {
+    public UserQuestStartEvent(QuestUserData questUserData, BaseQuest quest) {
         super(!Bukkit.isPrimaryThread());
         this.questUserData = questUserData;
         this.quest = quest;
@@ -24,7 +25,7 @@ public class UserQuestStartEvent extends Event implements Cancellable {
         return questUserData;
     }
 
-    public Quest getQuest() {
+    public BaseQuest getQuest() {
         return quest;
     }
 

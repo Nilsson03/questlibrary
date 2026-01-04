@@ -9,6 +9,7 @@ import ru.nilsson03.library.quest.exception.QuestStorageDuplicateException;
 import ru.nilsson03.library.quest.exception.QuestStorageException;
 import ru.nilsson03.library.quest.exception.QuestStorageNotLoadedException;
 import ru.nilsson03.library.quest.parser.Parser;
+import ru.nilsson03.library.quest.quest.simple.BaseQuest;
 import ru.nilsson03.library.quest.storage.QuestStorage;
 import ru.nilsson03.library.quest.storage.QuestStorageManager;
 
@@ -42,7 +43,7 @@ public class QuestCompletedConditionParser implements Parser<QuestCondition> {
     public QuestCondition parse(ConfigurationSection section) {
         String questId = section.getString("quest_completed");
 
-        Quest requiredQuest;
+        BaseQuest requiredQuest;
         try {
             requiredQuest = questStorage.getQuestByUniqueKeyOrThrow(questId);
         } catch (IllegalArgumentException exception) {

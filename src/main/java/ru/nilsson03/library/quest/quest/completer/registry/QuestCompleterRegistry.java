@@ -10,16 +10,16 @@ import java.util.Map;
 
 public class QuestCompleterRegistry {
     
-    private final Map<Class<? extends Quest>, QuestCompleter> completers = new HashMap<>();
+    private final Map<Class<? extends BaseQuest>, QuestCompleter> completers = new HashMap<>();
 
     public QuestCompleterRegistry(QuestUsersStorage questUsersStorage) {
     }
 
-    public void registerCompleter(Class<? extends Quest> questClass, QuestCompleter completer) {
+    public void registerCompleter(Class<? extends BaseQuest> questClass, QuestCompleter completer) {
         completers.put(questClass, completer);
     }
 
-    public QuestCompleter getCompleter(Quest quest) {
+    public QuestCompleter getCompleter(BaseQuest quest) {
         return completers.get(quest.getClass());
     }
 

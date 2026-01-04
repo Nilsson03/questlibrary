@@ -3,6 +3,7 @@ package ru.nilsson03.library.quest.core.service;
 import ru.nilsson03.library.quest.objective.factory.QuestProgressFactory;
 import ru.nilsson03.library.quest.objective.factory.registry.QuestProgressFactoryRegistry;
 import ru.nilsson03.library.quest.objective.progress.QuestProgress;
+import ru.nilsson03.library.quest.quest.simple.BaseQuest;
 import ru.nilsson03.library.quest.user.data.QuestUserData;
 
 import java.util.Set;
@@ -15,7 +16,7 @@ public class QuestProgressService {
         this.factoryRegistry = factoryRegistry;
     }
 
-    public Set<QuestProgress> createEmptyProgressForQuest(final QuestUserData questUserData, final Quest quest) {
+    public Set<QuestProgress> createEmptyProgressForQuest(final QuestUserData questUserData, final BaseQuest quest) {
         QuestProgressFactory factory = factoryRegistry.getFactory(quest);
         if (factory == null) {
             throw new IllegalArgumentException("No factory found for quest type: " + quest.getClass()

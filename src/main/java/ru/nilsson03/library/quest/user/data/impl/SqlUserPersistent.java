@@ -4,6 +4,7 @@ import ru.nilsson03.library.NPlugin;
 import ru.nilsson03.library.bukkit.util.log.ConsoleLogger;
 import ru.nilsson03.library.quest.objective.goal.Goal;
 import ru.nilsson03.library.quest.objective.progress.QuestProgress;
+import ru.nilsson03.library.quest.objective.progress.impl.BaseQuestProgress;
 import ru.nilsson03.library.quest.quest.simple.BaseQuest;
 import ru.nilsson03.library.quest.storage.QuestStorage;
 import ru.nilsson03.library.quest.user.data.QuestUserData;
@@ -422,8 +423,8 @@ public class SqlUserPersistent implements UserDataPersistent {
                 .filter(objective -> objective.key().equals(objectiveKey))
                 .findFirst()
                 .map(objective -> {
-                    ru.nilsson03.library.quest.objective.progress.impl.BaseQuestProgress progress = 
-                            new ru.nilsson03.library.quest.objective.progress.impl.BaseQuestProgress(
+                    BaseQuestProgress progress =
+                            new BaseQuestProgress(
                                     userData, quest, objective);
                     for (Goal goal : objective.goals()) {
                         Long currentValue = goalProgress.get(goal.toString());

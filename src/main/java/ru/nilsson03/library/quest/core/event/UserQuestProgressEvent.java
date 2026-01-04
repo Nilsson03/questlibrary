@@ -6,6 +6,7 @@ import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 import ru.nilsson03.library.quest.objective.Objective;
 import ru.nilsson03.library.quest.objective.goal.Goal;
+import ru.nilsson03.library.quest.quest.simple.BaseQuest;
 import ru.nilsson03.library.quest.user.data.QuestUserData;
 
 public class UserQuestProgressEvent extends Event implements Cancellable {
@@ -13,7 +14,7 @@ public class UserQuestProgressEvent extends Event implements Cancellable {
     private static final HandlerList HANDLERS = new HandlerList();
 
     private final QuestUserData questUserData;
-    private final Quest quest;
+    private final BaseQuest quest;
     private final Objective objective;
     private final Goal goal;
     private final long previousValue;
@@ -22,7 +23,7 @@ public class UserQuestProgressEvent extends Event implements Cancellable {
 
     public UserQuestProgressEvent(
             QuestUserData questUserData,
-            Quest quest,
+            BaseQuest quest,
             Objective objective,
             Goal goal,
             long previousValue,
@@ -40,7 +41,7 @@ public class UserQuestProgressEvent extends Event implements Cancellable {
         return questUserData;
     }
 
-    public Quest getQuest() {
+    public BaseQuest getQuest() {
         return quest;
     }
 

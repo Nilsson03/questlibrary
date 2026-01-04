@@ -4,6 +4,7 @@ import org.bukkit.plugin.Plugin;
 import ru.nilsson03.library.NPlugin;
 import ru.nilsson03.library.quest.exception.QuestAlreadyCompletedException;
 import ru.nilsson03.library.quest.objective.progress.QuestProgress;
+import ru.nilsson03.library.quest.quest.simple.BaseQuest;
 import ru.nilsson03.library.quest.user.data.QuestUserData;
 import ru.nilsson03.library.quest.user.data.UserDataPersistent;
 
@@ -48,7 +49,7 @@ public class QuestUsersStorage {
      * @param uuid  идентификатор пользователя
      * @param quest квест, который игрок выполнил
      */
-    public void addCompleteQuest(UUID uuid, Quest quest) {
+    public void addCompleteQuest(UUID uuid, BaseQuest quest) {
         Objects.requireNonNull(uuid, "uuid cannot be null");
         Objects.requireNonNull(quest, "quest cannot be null");
 
@@ -66,7 +67,7 @@ public class QuestUsersStorage {
      * @param uuid   идентификатор пользователя
      * @param quests список квестов, которые необходимо пометить, как выполенные
      */
-    public void addCompleteQuests(UUID uuid, List<Quest> quests) {
+    public void addCompleteQuests(UUID uuid, List<BaseQuest> quests) {
         Objects.requireNonNull(uuid, "uuid cannot be null");
         Objects.requireNonNull(quests, "quests cannot be null");
 
@@ -79,7 +80,7 @@ public class QuestUsersStorage {
             throw new IllegalArgumentException("QuestUserData not found for UUID: " + uuid);
         }
 
-        for (Quest quest : quests) {
+        for (BaseQuest quest : quests) {
             questUserData.addCompletedQuest(quest);
         }
     }
@@ -91,7 +92,7 @@ public class QuestUsersStorage {
      * @param quest квест, информацию о прогрессе выполнения которого необходимо получить
      * @return объект, представляющий прогресс прохождения игроком квеста
      */
-    public QuestProgress getObjectiveProgress(UUID uuid, Quest quest) {
+    public QuestProgress getObjectiveProgress(UUID uuid, BaseQuest quest) {
         Objects.requireNonNull(uuid, "uuid cannot be null");
         Objects.requireNonNull(quest, "quest cannot be null");
 

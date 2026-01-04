@@ -5,6 +5,7 @@ import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 import ru.nilsson03.library.quest.quest.completer.CompleteStatus;
+import ru.nilsson03.library.quest.quest.simple.BaseQuest;
 import ru.nilsson03.library.quest.user.data.QuestUserData;
 
 public class UserCompleteQuestEvent extends Event implements Cancellable {
@@ -12,11 +13,11 @@ public class UserCompleteQuestEvent extends Event implements Cancellable {
     private static final HandlerList HANDLERS = new HandlerList();
 
     private final QuestUserData questUserData;
-    private final Quest quest;
+    private final BaseQuest quest;
     private final CompleteStatus status;
     private boolean cancelled;
 
-    public UserCompleteQuestEvent(QuestUserData questUserData, Quest quest, CompleteStatus status) {
+    public UserCompleteQuestEvent(QuestUserData questUserData, BaseQuest quest, CompleteStatus status) {
         super(!Bukkit.isPrimaryThread());
         this.questUserData = questUserData;
         this.quest = quest;
@@ -27,7 +28,7 @@ public class UserCompleteQuestEvent extends Event implements Cancellable {
         return questUserData;
     }
 
-    public Quest getQuest() {
+    public BaseQuest getQuest() {
         return quest;
     }
 

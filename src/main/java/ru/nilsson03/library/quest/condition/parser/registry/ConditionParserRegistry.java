@@ -25,9 +25,9 @@ public class ConditionParserRegistry extends ParserRegistry<Parser<QuestConditio
     private final Plugin plugin;
     private final String pluginName;
 
-    public ConditionParserRegistry(Plugin plugin, String pluginName) {
+    public ConditionParserRegistry(Plugin plugin) {
         this.plugin = plugin;
-        this.pluginName = pluginName;
+        this.pluginName = plugin.getName();
     }
 
     /**

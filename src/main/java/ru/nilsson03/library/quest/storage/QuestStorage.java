@@ -5,6 +5,7 @@ import org.bukkit.plugin.Plugin;
 import ru.nilsson03.library.bukkit.file.FileHelper;
 import ru.nilsson03.library.bukkit.util.Namespace;
 import ru.nilsson03.library.bukkit.util.log.ConsoleLogger;
+import ru.nilsson03.library.quest.quest.simple.BaseQuest;
 import ru.nilsson03.library.quest.storage.loader.QuestLoader;
 
 import java.io.File;
@@ -16,7 +17,7 @@ import java.util.Objects;
 public class QuestStorage {
 
     private final Plugin plugin;
-    private final List<Quest> quests;
+    private final List<BaseQuest> quests;
 
     /**
      * Конструктор для создания объекта QuestStorage.
@@ -57,7 +58,7 @@ public class QuestStorage {
     public void removeQuestOrThrow(final Namespace key) {
         Preconditions.checkArgument(key != null, "Quest key cannot be null");
 
-        List<Quest> matchingQuests = quests.stream()
+        List<BaseQuest> matchingQuests = quests.stream()
                                            .filter(Objects::nonNull)
                                            .filter(quest -> key.equals(quest.questUniqueKey()))
                                            .toList();
@@ -82,8 +83,8 @@ public class QuestStorage {
      * @param key Уникальный ключ квеста.
      * @return Найденный квест или null, если квест не найден.
      */
-    protected Quest getQuestByUniqueKey(final Namespace key) {
-        List<Quest> matchingQuests = quests.stream()
+    protected BaseQuest getQuestByUniqueKey(final Namespace key) {
+        List<BaseQuest> matchingQuests = quests.stream()
                                            .filter(quest -> key.equals(quest.questUniqueKey()))
                                            .toList();
 
@@ -105,9 +106,9 @@ public class QuestStorage {
      * @return Найденный квест.
      * @throws IllegalArgumentException если квест не найден.
      */
-    public Quest getQuestByUniqueKeyOrThrow(final String key) {
+    public BaseQuest getQuestByUniqueKeyOrThrow(String key) {
         Namespace questNamespace = Namespace.of(plugin.getName(), key);
-        Quest quest = getQuestByUniqueKey(questNamespace);
+        BaseQuest quest = getQuestByUniqueKey(questNamespace);
         Preconditions.checkArgument(quest != null,
                                     "No quest found with key: " + key + " in plugin: " + plugin.getName());
         return quest;
@@ -117,7 +118,7 @@ public class QuestStorage {
         return plugin;
     }
 
-    public List<Quest> getQuests() {
+    public List<BaseQuest> getQuests() {
         return quests;
     }
 }

@@ -11,6 +11,7 @@ import ru.nilsson03.library.quest.objective.progress.QuestProgress;
 import ru.nilsson03.library.quest.quest.completer.CompleteStatus;
 import ru.nilsson03.library.quest.quest.completer.QuestCompleter;
 import ru.nilsson03.library.quest.quest.completer.registry.QuestCompleterRegistry;
+import ru.nilsson03.library.quest.quest.simple.BaseQuest;
 import ru.nilsson03.library.quest.user.data.QuestUserData;
 
 public class QuestLifecycleService {
@@ -23,7 +24,7 @@ public class QuestLifecycleService {
         this.questCompleterRegistry = questCompleterRegistry;
     }
 
-    public void startQuest(QuestUserData user, Quest quest, Consumer<QuestUserData> questUserDataConsumer) {
+    public void startQuest(QuestUserData user, BaseQuest quest, Consumer<QuestUserData> questUserDataConsumer) {
         if (user.questIsComplete(quest)) {
             return;
         }
@@ -47,11 +48,11 @@ public class QuestLifecycleService {
         }
     }
 
-    public void startQuest(QuestUserData user, Quest quest) {
+    public void startQuest(QuestUserData user, BaseQuest quest) {
         this.startQuest(user, quest, null);
     }
 
-    public CompleteStatus completeQuest(QuestUserData user, Quest quest, Consumer<QuestUserData> questUserDataConsumer) {
+    public CompleteStatus completeQuest(QuestUserData user, BaseQuest quest, Consumer<QuestUserData> questUserDataConsumer) {
         if (user.questIsComplete(quest)) {
             return CompleteStatus.ALREADY_COMPLETE;
         }
@@ -79,7 +80,7 @@ public class QuestLifecycleService {
         return status;
     }
 
-    public CompleteStatus completeQuest(QuestUserData user, Quest quest) {
+    public CompleteStatus completeQuest(QuestUserData user, BaseQuest quest) {
         return completeQuest(user, quest, null);
     }
 }

@@ -9,12 +9,10 @@ import ru.nilsson03.library.quest.parser.ParserRegistry;
 
 public class MetaParserRegistry extends ParserRegistry<Parser<QuestMeta>, QuestMeta> {
 
-    private final Plugin plugin;
     private final String pluginName;
 
-    public MetaParserRegistry(Plugin plugin, String pluginName) {
-        this.plugin = plugin;
-        this.pluginName = pluginName;
+    public MetaParserRegistry(Plugin plugin) {
+        this.pluginName = plugin.getName();
     }
 
     @Override

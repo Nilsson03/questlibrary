@@ -8,6 +8,7 @@ import ru.nilsson03.library.quest.core.service.QuestLifecycleService;
 import ru.nilsson03.library.quest.core.service.QuestProgressService;
 import ru.nilsson03.library.quest.core.service.QuestUpdateService;
 import ru.nilsson03.library.quest.handler.QuestEventManager;
+import ru.nilsson03.library.quest.quest.simple.BaseQuest;
 import ru.nilsson03.library.quest.storage.QuestStorage;
 import ru.nilsson03.library.quest.objective.factory.registry.QuestProgressFactoryRegistry;
 import ru.nilsson03.library.quest.objective.registry.ObjectiveRegistry;
@@ -99,7 +100,7 @@ public class QuestManager {
      * @param quest                 квест
      * @param questUserDataConsumer дополнительные действия, которые могут быть совершены с игроком
      */
-    public CompleteStatus completeQuest(QuestUserData user, Quest quest, Consumer<QuestUserData> questUserDataConsumer) {
+    public CompleteStatus completeQuest(QuestUserData user, BaseQuest quest, Consumer<QuestUserData> questUserDataConsumer) {
         return questLifecycleService.completeQuest(user, quest, questUserDataConsumer);
     }
 
@@ -110,7 +111,7 @@ public class QuestManager {
      * @param quest                 квест, который будет выполнять игрок
      * @param questUserDataConsumer дополнительные действия, которые могут быть связаны с игроком
      */
-    public void startQuest(QuestUserData user, Quest quest, Consumer<QuestUserData> questUserDataConsumer) {
+    public void startQuest(QuestUserData user, BaseQuest quest, Consumer<QuestUserData> questUserDataConsumer) {
         questLifecycleService.startQuest(user, quest, questUserDataConsumer);
     }
 }
