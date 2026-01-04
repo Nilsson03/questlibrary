@@ -4,7 +4,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
-import ru.nilsson03.library.quest.core.Quest;
 import ru.nilsson03.library.quest.user.data.QuestUserData;
 
 public class UserQuestStartEvent extends Event implements Cancellable {

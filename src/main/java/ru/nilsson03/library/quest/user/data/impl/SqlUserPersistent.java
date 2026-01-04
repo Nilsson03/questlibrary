@@ -2,7 +2,6 @@ package ru.nilsson03.library.quest.user.data.impl;
 
 import ru.nilsson03.library.NPlugin;
 import ru.nilsson03.library.bukkit.util.log.ConsoleLogger;
-import ru.nilsson03.library.quest.core.Quest;
 import ru.nilsson03.library.quest.objective.goal.Goal;
 import ru.nilsson03.library.quest.objective.progress.QuestProgress;
 import ru.nilsson03.library.quest.quest.simple.BaseQuest;
@@ -192,7 +191,7 @@ public class SqlUserPersistent implements UserDataPersistent {
 
         String insertSql = "INSERT INTO quest_completed (user_uuid, quest_key) VALUES (?, ?)";
         try (PreparedStatement statement = connection.prepareStatement(insertSql)) {
-            for (Quest quest : userData.completeQuests()) {
+            for (BaseQuest quest : userData.completeQuests()) {
                 statement.setString(1, userData.uuid().toString());
                 statement.setString(2, quest.questUniqueKey().getKey());
                 statement.addBatch();
@@ -286,7 +285,7 @@ public class SqlUserPersistent implements UserDataPersistent {
                             new QuestUserReceiptsRewardsData());
                 }
 
-                List<Quest> completedQuests = loadCompletedQuests(connection, uuid);
+                List<BaseQuest> completedQuests = loadCompletedQuests(connection, uuid);
                 Map<UUID, Integer> receiptsRewards = loadReceiptsRewards(connection, uuid);
                 QuestUserReceiptsRewardsData receiptsData = new QuestUserReceiptsRewardsData(receiptsRewards);
 
@@ -325,8 +324,8 @@ public class SqlUserPersistent implements UserDataPersistent {
         }
     }
 
-    private List<Quest> loadCompletedQuests(Connection connection, UUID uuid) throws SQLException {
-        List<Quest> completedQuests = new ArrayList<>();
+    private List<BaseQuest> loadCompletedQuests(Connection connection, UUID uuid) throws SQLException {
+        List<BaseQuest> completedQuests = new ArrayList<>();
         String sql = "SELECT quest_key FROM quest_completed WHERE user_uuid = ?";
         
         try (PreparedStatement statement = connection.prepareStatement(sql)) {
@@ -336,7 +335,7 @@ public class SqlUserPersistent implements UserDataPersistent {
             while (rs.next()) {
                 String questKey = rs.getString("quest_key");
                 try {
-                    Quest quest = questStorage.getQuestByUniqueKeyOrThrow(questKey);
+                    BaseQuest quest = questStorage.getQuestByUniqueKeyOrThrow(questKey);
                     completedQuests.add(quest);
                 } catch (Exception e) {
                     plugin.getLogger().warning("Quest with key '" + questKey + "' not found in storage, skipping.");
@@ -381,7 +380,7 @@ public class SqlUserPersistent implements UserDataPersistent {
                 String objectiveKey = rs.getString("objective_key");
                 
                 try {
-                    Quest quest = questStorage.getQuestByUniqueKeyOrThrow(questKey);
+                    BaseQuest quest = questStorage.getQuestByUniqueKeyOrThrow(questKey);
                     Map<String, Long> goalProgress = loadGoalProgress(connection, progressId);
                     
                     QuestProgress progress = createQuestProgress(quest, objectiveKey, goalProgress, userData);
@@ -413,14 +412,13 @@ public class SqlUserPersistent implements UserDataPersistent {
         return goalProgress;
     }
 
-    private QuestProgress createQuestProgress(Quest quest, String objectiveKey, 
+    private QuestProgress createQuestProgress(BaseQuest quest, String objectiveKey,
                                              Map<String, Long> goalProgress, QuestUserData userData) {
         if (!(quest instanceof BaseQuest)) {
             return null;
         }
-        
-        BaseQuest baseQuest = (BaseQuest) quest;
-        return baseQuest.objectives().stream()
+
+        return quest.objectives().stream()
                 .filter(objective -> objective.key().equals(objectiveKey))
                 .findFirst()
                 .map(objective -> {
@@ -477,5 +475,72 @@ public class SqlUserPersistent implements UserDataPersistent {
             executorService.shutdownNow();
             Thread.currentThread().interrupt();
         }
+    }
+
+    public CompletableFuture<Long> getQuestCompletionTimeAsync(UUID uuid, String questKey) {
+        return CompletableFuture.supplyAsync(() -> {
+            try (Connection connection = dataSource.getConnection()) {
+                String sql = "SELECT completed_at FROM quest_completed WHERE user_uuid = ? AND quest_key = ?";
+                try (PreparedStatement statement = connection.prepareStatement(sql)) {
+                    statement.setString(1, uuid.toString());
+                    statement.setString(2, questKey);
+                    ResultSet rs = statement.executeQuery();
+                    if (rs.next()) {
+                        Timestamp timestamp = rs.getTimestamp("completed_at");
+                        return timestamp != null ? timestamp.getTime() : 0L;
+                    }
+                }
+            } catch (SQLException e) {
+                ConsoleLogger.error(plugin, "Failed to get quest completion time: %s", e.getMessage());
+            }
+            return 0L;
+        }, executorService);
+    }
+
+    @Override
+    public long getQuestCompletionTime(UUID uuid, String questKey) {
+        try {
+            return getQuestCompletionTimeAsync(uuid, questKey).get();
+        } catch (Exception e) {
+            ConsoleLogger.error(plugin, "Failed to get quest completion time synchronously: %s", e.getMessage());
+            return 0L;
+        }
+    }
+
+    public CompletableFuture<Void> deleteQuestDataAsync(UUID uuid, String questKey) {
+        return CompletableFuture.runAsync(() -> {
+            try (Connection connection = dataSource.getConnection()) {
+                connection.setAutoCommit(false);
+                try {
+                    String deleteCompletedSql = "DELETE FROM quest_completed WHERE user_uuid = ? AND quest_key = ?";
+                    try (PreparedStatement statement = connection.prepareStatement(deleteCompletedSql)) {
+                        statement.setString(1, uuid.toString());
+                        statement.setString(2, questKey);
+                        statement.executeUpdate();
+                    }
+
+                    String deleteProgressSql = "DELETE FROM quest_active_progress WHERE user_uuid = ? AND quest_key = ?";
+                    try (PreparedStatement statement = connection.prepareStatement(deleteProgressSql)) {
+                        statement.setString(1, uuid.toString());
+                        statement.setString(2, questKey);
+                        statement.executeUpdate();
+                    }
+
+                    connection.commit();
+                    ConsoleLogger.debug(plugin.getName(), "Deleted quest data for user %s, quest %s", uuid, questKey);
+                } catch (SQLException e) {
+                    connection.rollback();
+                    throw e;
+                }
+            } catch (SQLException e) {
+                ConsoleLogger.error(plugin, "Failed to delete quest data: %s", e.getMessage());
+                throw new RuntimeException(e);
+            }
+        }, executorService);
+    }
+
+    @Override
+    public CompletableFuture<Void> deleteQuestData(UUID uuid, String questKey) {
+        return deleteQuestDataAsync(uuid, questKey);
     }
 }

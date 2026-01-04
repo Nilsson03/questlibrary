@@ -1,6 +1,6 @@
-# Примеры квестов для QuestLibrary
+# QuestLibrary
 
-Этот каталог содержит примеры конфигурационных файлов квестов для демонстрации возможностей библиотеки.
+Библиотека для создания и управления квестами в Minecraft с поддержкой ежедневных квестов и автоматического сброса.
 
 ## Структура квеста
 
@@ -12,9 +12,154 @@
   - **weight**: Вес квеста (для сортировки)
   - **daily**: Ежедневный квест (true/false)
   - **description**: Список строк описания
+  - **updateTime**: Интервал сброса для daily квестов (только для DailyQuestMeta)
 - **conditions**: Условия для начала квеста
 - **objectives**: Список целей квеста
 - **reward**: Награда за выполнение
+
+## Типы метаданных квестов
+
+### SimpleQuestMeta
+Стандартные метаданные для обычных квестов (по умолчанию):
+```yaml
+meta:
+  displayName: "Обычный квест"
+  weight: 1
+  description:
+    - "Описание квеста"
+```
+
+Или явно указать тип:
+```yaml
+meta:
+  type: "simple"
+  displayName: "Обычный квест"
+  weight: 1
+  description:
+    - "Описание квеста"
+```
+
+### DailyQuestMeta
+Расширенные метаданные для ежедневных квестов с автоматическим сбросом:
+```yaml
+meta:
+  type: "daily"  # Обязательно для daily квестов
+  displayName: "Ежедневный квест"
+  weight: 1
+  updateTime: "1d"  # Интервал сброса
+  description:
+    - "Ежедневный квест с автоматическим сбросом"
+```
+
+**Важно:** Параметр `type: "daily"` обязателен для ежедневных квестов. Система автоматически определяет тип квеста по этому параметру и использует соответствующий парсер из `MetaParserRegistry`.
+
+## Расширение системы метаданных
+
+### MetaParserRegistry
+
+Система использует `MetaParserRegistry` для управления парсерами метаданных. Это позволяет легко добавлять кастомные типы квестов:
+
+```java
+// Получение реестра парсеров
+BaseQuestLoader loader = new BaseQuestLoader(questService);
+MetaParserRegistry registry = loader.getMetaParserRegistry();
+
+// Регистрация кастомного парсера
+registry.registerParser("weekly", new WeeklyMetaParser());
+registry.registerParser("monthly", new MonthlyMetaParser());
+```
+
+**Стандартные парсеры:**
+- `"simple"` (по умолчанию) → `SimpleMetaParser` → `SimpleQuestMeta`
+- `"daily"` → `DailyMetaParser` → `DailyQuestMeta`
+
+**Создание кастомного парсера:**
+```java
+public class WeeklyMetaParser implements Parser<QuestMeta> {
+    @Override
+    public QuestMeta parse(ConfigurationSection section) {
+        // Ваша логика парсинга
+        return new WeeklyQuestMeta(...);
+    }
+}
+```
+
+### Обратная совместимость
+
+Все существующие квесты без параметра `type` автоматически используют `SimpleMetaParser` и продолжат работать без изменений.
+
+**Форматы updateTime:**
+- `"1d"` - 1 день
+- `"12h"` - 12 часов
+- `"7d"` - 7 дней (еженедельный)
+- `"30m"` - 30 минут
+- `"60s"` - 60 секунд
+
+## Система автоматического сброса квестов
+
+### Как это работает
+
+1. **Создание daily квеста**: Используйте `DailyQuestMeta` с параметром `updateTime`
+2. **Завершение квеста**: Время завершения автоматически сохраняется в БД
+3. **Автоматическая проверка**: Сервис проверяет квесты каждый час (настраивается)
+4. **Сброс данных**: Если прошло >= `updateTime`, данные удаляются из БД и памяти
+5. **Повторное прохождение**: Игрок может снова начать квест
+
+### Инициализация сервиса обновления
+
+```java
+
+QuestManager questManager = questService.getQuestManager();
+QuestStorage questStorage = questLibrary.getQuestStorage(plugin);
+
+questManager.startQuestUpdateService(questStorage);
+```
+
+### Настройка интервала проверки
+
+```java
+// Кастомный интервал проверки (в тиках, 20 тиков = 1 секунда)
+long checkIntervalTicks = 20 * 60 * 30; 
+
+QuestUpdateService updateService = new QuestUpdateService(
+    plugin,
+    questUsersStorage,
+    userDataPersistent,
+    questStorage,
+    checkIntervalTicks
+);
+updateService.start();
+```
+
+### Пример конфигурации daily квеста
+
+```yaml
+id: "daily_mining_quest"
+
+meta:
+  type: "daily"
+  displayName: "§6Ежедневная добыча"
+  weight: 1
+  updateTime: "1d"
+  description:
+    - "§7Добудьте 64 алмазной руды"
+    - "§7Сбрасывается каждый день"
+
+objectives:
+  mine_diamonds:
+    key: "mine_diamonds"
+    type: "BREAK_BLOCK"
+    goals:
+      - type: "MATERIAL"
+        material: "DIAMOND_ORE"
+        target: 64
+
+reward:
+  uniqueIdentificationKey: "daily-mining-reward-uuid"
+  commands:
+    - "eco give %player% 1000"
+    - "give %player% diamond 10"
+```
 
 ### Типы условий (conditions)
 

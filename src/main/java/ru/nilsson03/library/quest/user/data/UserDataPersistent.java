@@ -1,6 +1,7 @@
 package ru.nilsson03.library.quest.user.data;
 
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 public interface UserDataPersistent {
 
@@ -9,4 +10,12 @@ public interface UserDataPersistent {
     QuestUserData loadUserData(UUID uuid);
 
     void deleteUserData(UUID uuid);
+    
+    default long getQuestCompletionTime(UUID uuid, String questKey) {
+        return 0;
+    }
+    
+    default CompletableFuture<Void> deleteQuestData(UUID uuid, String questKey) {
+        return CompletableFuture.completedFuture(null);
+    }
 }

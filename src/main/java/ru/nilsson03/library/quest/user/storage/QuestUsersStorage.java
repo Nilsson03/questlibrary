@@ -2,7 +2,6 @@ package ru.nilsson03.library.quest.user.storage;
 
 import org.bukkit.plugin.Plugin;
 import ru.nilsson03.library.NPlugin;
-import ru.nilsson03.library.quest.core.Quest;
 import ru.nilsson03.library.quest.exception.QuestAlreadyCompletedException;
 import ru.nilsson03.library.quest.objective.progress.QuestProgress;
 import ru.nilsson03.library.quest.user.data.QuestUserData;
@@ -134,5 +133,13 @@ public class QuestUsersStorage {
         for (QuestUserData userData : usersData.values()) {
             saveData(userData);
         }
+    }
+    
+    public UserDataPersistent getUserDataPersistent() {
+        return userDataPersistent;
+    }
+    
+    public Collection<QuestUserData> getAllLoadedUsers() {
+        return usersData.values();
     }
 }

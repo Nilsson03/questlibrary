@@ -1,13 +1,12 @@
 package ru.nilsson03.library.quest.core.service;
 
+import lombok.Getter;
 import org.bukkit.Bukkit;
-import org.bukkit.plugin.Plugin;
-import ru.nilsson03.library.quest.condition.QuestCondition;
+import ru.nilsson03.library.NPlugin;
 import ru.nilsson03.library.quest.condition.parser.registry.ConditionParserRegistry;
 import ru.nilsson03.library.quest.core.manager.QuestManager;
+import ru.nilsson03.library.quest.meta.parser.registry.MetaParserRegistry;
 import ru.nilsson03.library.quest.objective.registry.ObjectiveRegistry;
-import ru.nilsson03.library.quest.parser.Parser;
-import ru.nilsson03.library.quest.parser.ParserRegistry;
 import ru.nilsson03.library.quest.user.storage.QuestUsersStorage;
 
 import java.util.Objects;
@@ -18,50 +17,59 @@ import java.util.Objects;
  * @see QuestManager
  * @see ConditionParserRegistry
  */
+@Getter
 public class QuestService {
 
-    private final ParserRegistry<? super Parser<QuestCondition>, QuestCondition> conditionParseRegistry;
+    private final ConditionParserRegistry conditionParserRegistry;
+    private final MetaParserRegistry metaParserRegistry;
     private final ObjectiveRegistry objectiveRegistry;
-    private final Plugin plugin;
+    private final NPlugin plugin;
     private QuestManager questManager;
 
     /**
      * @param plugin                        плагин, для которого инициализируется сервис квестов
      * @param questUsersStorage             реализация хранения данных пользователей
      * @param customConditionParserRegistry кастомный регистер парсеров условий для выполнения квестов
-     * @param customQuestMetaParserRegistry кастомный регистер парсеров мета-данных квестов
+     * @param customMetaParserRegistry      кастомный регистер парсеров метаданных квестов
      */
     public QuestService(
-            Plugin plugin, QuestUsersStorage questUsersStorage,
-            ParserRegistry<? super Parser<QuestCondition>, QuestCondition> customConditionParserRegistry) {
+            NPlugin plugin, QuestUsersStorage questUsersStorage,
+            ConditionParserRegistry customConditionParserRegistry,
+            MetaParserRegistry customMetaParserRegistry) {
         this.plugin = Objects.requireNonNull(plugin, "plugin cannot be null");
         
-        this.conditionParseRegistry = Objects.requireNonNull(customConditionParserRegistry,
+        this.conditionParserRegistry = Objects.requireNonNull(customConditionParserRegistry,
                                                              "customConditionParserRegistry cannot be null");
+        this.metaParserRegistry = Objects.requireNonNull(customMetaParserRegistry,
+                                                         "customMetaParserRegistry cannot be null");
         this.objectiveRegistry = new ObjectiveRegistry();
         
         this.objectiveRegistry.onRegistryInit();
-        this.conditionParseRegistry.onRegistryInit();
+        this.conditionParserRegistry.onRegistryInit();
+        this.metaParserRegistry.onRegistryInit();
 
         if (questUsersStorage != null) {
             this.questManager = new QuestManager(plugin, questUsersStorage, objectiveRegistry);
         }
 
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            this.conditionParseRegistry.onRegistryAfterInit();
+            this.conditionParserRegistry.onRegistryAfterInit();
+            this.metaParserRegistry.onRegistryAfterInit();
         }, 300);
     }
 
-    public QuestService(Plugin plugin, QuestUsersStorage questUsersStorage) {
+    public QuestService(NPlugin plugin, QuestUsersStorage questUsersStorage) {
         this.plugin = Objects.requireNonNull(plugin, "plugin cannot be null");
 
         String pluginName = plugin.getName();
         
         this.objectiveRegistry = new ObjectiveRegistry();
-        this.conditionParseRegistry = new ConditionParserRegistry(plugin, pluginName);
+        this.conditionParserRegistry = new ConditionParserRegistry(plugin, pluginName);
+        this.metaParserRegistry = new MetaParserRegistry(plugin, pluginName);
         
         this.objectiveRegistry.onRegistryInit();
-        this.conditionParseRegistry.onRegistryInit();
+        this.conditionParserRegistry.onRegistryInit();
+        this.metaParserRegistry.onRegistryInit();
 
         if (questUsersStorage != null) {
             this.questManager = new QuestManager(plugin, questUsersStorage, objectiveRegistry);
@@ -78,24 +86,5 @@ public class QuestService {
         if (questManager != null) {
             questManager.registerEventHandlers();
         }
-    }
-
-    public ParserRegistry<? super Parser<QuestCondition>, QuestCondition> getConditionParserRegistry() {
-        return conditionParseRegistry;
-    }
-
-    public Plugin getPlugin() {
-        return plugin;
-    }
-
-    public QuestManager getQuestManager() {
-        if (questManager == null) {
-            throw new IllegalStateException("QuestManager not initialized. Call initializeQuestManager() first.");
-        }
-        return questManager;
-    }
-
-    public ObjectiveRegistry getObjectiveRegistry() {
-        return objectiveRegistry;
     }
 }

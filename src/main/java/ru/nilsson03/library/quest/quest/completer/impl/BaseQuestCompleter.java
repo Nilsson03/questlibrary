@@ -1,7 +1,6 @@
 package ru.nilsson03.library.quest.quest.completer.impl;
 
 import ru.nilsson03.library.quest.condition.QuestCondition;
-import ru.nilsson03.library.quest.core.Quest;
 import ru.nilsson03.library.quest.quest.completer.CompleteStatus;
 import ru.nilsson03.library.quest.quest.completer.QuestCompleter;
 import ru.nilsson03.library.quest.quest.simple.BaseQuest;

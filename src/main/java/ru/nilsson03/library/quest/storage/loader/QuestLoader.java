@@ -1,7 +1,7 @@
 package ru.nilsson03.library.quest.storage.loader;
 
 import com.google.common.base.Preconditions;
-import ru.nilsson03.library.quest.core.Quest;
+import ru.nilsson03.library.quest.quest.simple.BaseQuest;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -17,13 +17,13 @@ public interface QuestLoader {
      * @return список загруженных квестов
      * @throws IllegalArgumentException если questsDirectory не является директорией
      */
-    default List<Quest> loadQuests(File questsDirectory) {
+    default List<BaseQuest> loadQuests(File questsDirectory) {
         Preconditions.checkArgument(questsDirectory.isDirectory(), "questsDirectory must be a directory");
 
         File[] files = questsDirectory.listFiles();
         Objects.requireNonNull(files, "questsDirectory.listFiles() is null");
 
-        List<Quest> quests = new ArrayList<>();
+        List<BaseQuest> quests = new ArrayList<>();
 
         for (File file : files) {
 
@@ -31,7 +31,7 @@ public interface QuestLoader {
                 continue;
             }
 
-            Quest quest = loadQuestFromFile(file);
+            BaseQuest quest = loadQuestFromFile(file);
             quests.add(quest);
         }
 
@@ -44,5 +44,5 @@ public interface QuestLoader {
      * @param file файл, содержащий данные квеста
      * @return объект Quest или null, если файл не содержит валидных данных
      */
-    Quest loadQuestFromFile(File file);
+    BaseQuest loadQuestFromFile(File file);
 }

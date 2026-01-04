@@ -1,6 +1,5 @@
 package ru.nilsson03.library.quest.objective.factory.registry;
 
-import ru.nilsson03.library.quest.core.Quest;
 import ru.nilsson03.library.quest.objective.factory.QuestProgressFactory;
 
 import java.util.HashMap;

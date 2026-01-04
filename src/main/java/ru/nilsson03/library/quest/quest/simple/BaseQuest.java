@@ -4,13 +4,28 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import ru.nilsson03.library.quest.core.Quest;
+import ru.nilsson03.library.bukkit.util.Namespace;
+import ru.nilsson03.library.quest.condition.QuestCondition;
+import ru.nilsson03.library.quest.meta.QuestMeta;
 import ru.nilsson03.library.quest.objective.Objective;
 import ru.nilsson03.library.quest.objective.registry.ObjectiveType;
+import ru.nilsson03.library.quest.reward.QuestReward;
 
-public interface BaseQuest extends Quest {
+public interface BaseQuest {
 
     List<Objective> objectives();
+
+    QuestReward rewards();
+
+    Namespace questUniqueKey();
+
+    QuestMeta questMeta();
+
+    Set<QuestCondition> conditions();
+
+    default boolean conditionsIsEmpty() {
+        return conditions().isEmpty();
+    }
 
     /**
      * Проверка содержит ли список задач тип задачи 

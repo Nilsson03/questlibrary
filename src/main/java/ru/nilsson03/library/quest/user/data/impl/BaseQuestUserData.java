@@ -1,7 +1,6 @@
 package ru.nilsson03.library.quest.user.data.impl;
 
 import ru.nilsson03.library.quest.QuestLibrary;
-import ru.nilsson03.library.quest.core.Quest;
 import ru.nilsson03.library.quest.exception.QuestAlreadyCompletedException;
 import ru.nilsson03.library.quest.exception.UserAlreadyHasQuestProgressException;
 import ru.nilsson03.library.quest.objective.Objective;

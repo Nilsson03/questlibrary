@@ -5,13 +5,12 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import ru.nilsson03.library.bukkit.util.Namespace;
 import ru.nilsson03.library.quest.condition.QuestCondition;
-import ru.nilsson03.library.quest.core.Quest;
 import ru.nilsson03.library.quest.core.service.QuestService;
 import ru.nilsson03.library.quest.meta.QuestMeta;
-import ru.nilsson03.library.quest.meta.impl.SimpleQuestMeta;
-import ru.nilsson03.library.quest.meta.parser.SimpleMetaParser;
+import ru.nilsson03.library.quest.meta.parser.registry.MetaParserRegistry;
 import ru.nilsson03.library.quest.objective.Objective;
 import ru.nilsson03.library.quest.objective.parser.ObjectiveParser;
+import ru.nilsson03.library.quest.quest.simple.BaseQuest;
 import ru.nilsson03.library.quest.quest.simple.impl.BaseQuestImpl;
 import ru.nilsson03.library.quest.reward.QuestReward;
 import ru.nilsson03.library.quest.reward.parser.BaseRewardParser;
@@ -27,19 +26,17 @@ import java.util.*;
 public class BaseQuestLoader implements QuestLoader {
 
     private final QuestService questService;
-    private final SimpleMetaParser metaParser;
     private final BaseRewardParser rewardParser;
     private final ObjectiveParser objectiveParser;
 
     public BaseQuestLoader(QuestService questService) {
         this.questService = Objects.requireNonNull(questService, "QuestService cannot be null");
-        this.metaParser = new SimpleMetaParser();
         this.rewardParser = new BaseRewardParser();
         this.objectiveParser = questService.getObjectiveRegistry().getObjectiveParser();
     }
 
     @Override
-    public Quest loadQuestFromFile(File file) {
+    public BaseQuest loadQuestFromFile(File file) {
         if (file == null || !file.exists() || !file.isFile()) {
             questService.getPlugin().getLogger().warning("Invalid quest file: " + (file != null ? file.getName() : "null"));
             return null;
@@ -60,7 +57,7 @@ public class BaseQuestLoader implements QuestLoader {
         }
     }
 
-    private Quest parseQuest(ConfigurationSection config, File file) {
+    private BaseQuest parseQuest(ConfigurationSection config, File file) {
         String questKey = config.getString("key");
         if (questKey == null || questKey.trim().isEmpty()) {
             throw new IllegalArgumentException("Quest key cannot be null or empty in file: " + file.getName());
@@ -69,7 +66,7 @@ public class BaseQuestLoader implements QuestLoader {
         String pluginName = questService.getPlugin().getName();
         Namespace questNamespace = Namespace.of(pluginName, questKey);
 
-        SimpleQuestMeta questMeta = (SimpleQuestMeta) parseMeta(config);
+        QuestMeta questMeta = parseMeta(config);
         Set<QuestCondition> conditions = parseConditions(config);
         List<Objective> objectives = parseObjectives(config);
         QuestReward reward = parseReward(config);
@@ -84,7 +81,8 @@ public class BaseQuestLoader implements QuestLoader {
         }
 
         try {
-            return metaParser.parse(metaSection);
+            MetaParserRegistry metaParserRegistry = questService.getMetaParserRegistry();
+            return metaParserRegistry.parse(metaSection);
         } catch (Exception e) {
             questService.getPlugin().getLogger().severe("Failed to parse quest meta: " + e.getMessage());
             throw new RuntimeException("Failed to parse quest meta", e);
@@ -144,9 +142,6 @@ public class BaseQuestLoader implements QuestLoader {
         return objectives;
     }
 
-    /**
-     * Парсит награду квеста.
-     */
     private QuestReward parseReward(ConfigurationSection config) {
         ConfigurationSection rewardSection = config.getConfigurationSection("rewards");
         if (rewardSection == null) {

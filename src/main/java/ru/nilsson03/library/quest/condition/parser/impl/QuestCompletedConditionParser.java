@@ -5,7 +5,6 @@ import org.bukkit.plugin.Plugin;
 import ru.nilsson03.library.quest.QuestLibrary;
 import ru.nilsson03.library.quest.condition.QuestCondition;
 import ru.nilsson03.library.quest.condition.impl.QuestCompletedCondition;
-import ru.nilsson03.library.quest.core.Quest;
 import ru.nilsson03.library.quest.exception.QuestStorageDuplicateException;
 import ru.nilsson03.library.quest.exception.QuestStorageException;
 import ru.nilsson03.library.quest.exception.QuestStorageNotLoadedException;

@@ -12,11 +12,10 @@ public class SimpleMetaParser implements Parser<QuestMeta> {
 
     @Override
     public QuestMeta parse(ConfigurationSection configurationSection) {
-        int weight = configurationSection.getInt("weight");
+        int weight = configurationSection.getInt("weight", 1);
         List<String> description = configurationSection.getStringList("description");
-        String displayName = configurationSection.getString("displayName");
-        boolean daily = configurationSection.getBoolean("daily");
-        return new SimpleQuestMeta(weight, description, displayName, daily);
+        String displayName = configurationSection.getString("displayName", "Quest");
+        return new SimpleQuestMeta(weight, description, displayName);
     }
     
 }

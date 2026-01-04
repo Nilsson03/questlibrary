@@ -1,7 +1,6 @@
 package ru.nilsson03.library.quest.util;
 
 import ru.nilsson03.library.bukkit.util.Namespace;
-import ru.nilsson03.library.quest.core.Quest;
 import ru.nilsson03.library.quest.user.data.QuestUserData;
 
 import java.util.Set;

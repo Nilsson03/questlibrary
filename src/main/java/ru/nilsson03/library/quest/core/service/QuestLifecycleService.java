@@ -5,7 +5,6 @@ import java.util.function.Consumer;
 
 import org.bukkit.Bukkit;
 
-import ru.nilsson03.library.quest.core.Quest;
 import ru.nilsson03.library.quest.core.event.UserCompleteQuestEvent;
 import ru.nilsson03.library.quest.core.event.UserQuestStartEvent;
 import ru.nilsson03.library.quest.objective.progress.QuestProgress;

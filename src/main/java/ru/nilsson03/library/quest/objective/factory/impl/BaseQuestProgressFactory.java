@@ -1,6 +1,5 @@
 package ru.nilsson03.library.quest.objective.factory.impl;
 
-import ru.nilsson03.library.quest.core.Quest;
 import ru.nilsson03.library.quest.objective.factory.QuestProgressFactory;
 import ru.nilsson03.library.quest.objective.progress.QuestProgress;
 import ru.nilsson03.library.quest.objective.progress.impl.BaseQuestProgress;

@@ -2,13 +2,13 @@ package ru.nilsson03.library.quest.core.manager;
 
 import java.util.function.Consumer;
 
-import org.bukkit.plugin.Plugin;
-
 import lombok.Getter;
-import ru.nilsson03.library.quest.core.Quest;
+import ru.nilsson03.library.NPlugin;
 import ru.nilsson03.library.quest.core.service.QuestLifecycleService;
 import ru.nilsson03.library.quest.core.service.QuestProgressService;
+import ru.nilsson03.library.quest.core.service.QuestUpdateService;
 import ru.nilsson03.library.quest.handler.QuestEventManager;
+import ru.nilsson03.library.quest.storage.QuestStorage;
 import ru.nilsson03.library.quest.objective.factory.registry.QuestProgressFactoryRegistry;
 import ru.nilsson03.library.quest.objective.registry.ObjectiveRegistry;
 import ru.nilsson03.library.quest.quest.completer.CompleteStatus;
@@ -17,18 +17,16 @@ import ru.nilsson03.library.quest.user.data.QuestUserData;
 import ru.nilsson03.library.quest.user.storage.QuestUsersStorage;
 import ru.nilsson03.library.quest.tracker.MovementTracker;
 
-/**
- * Менеджер для управления квестами, а так же остальными компонентами, которые к ним относятся
- *
- * @see ru.nilsson03.library.quest.core.service.QuestService инициализация данного менеджера
- */
 @Getter
 public class QuestManager {
 
+    private final NPlugin plugin;
+    private final QuestUsersStorage questUsersStorage;
     private final QuestLifecycleService questLifecycleService;
     private final QuestEventManager questEventManager;
     private final QuestProgressService questProgressService;
     private final MovementTracker movementTracker;
+    private QuestUpdateService questUpdateService;
 
     /**
      * Конструктор класса
@@ -39,7 +37,9 @@ public class QuestManager {
      * @param questUsersStorage реализация хранилища игроков
      * @see QuestEventManager
      */
-    public QuestManager(Plugin plugin, QuestUsersStorage questUsersStorage, ObjectiveRegistry objectiveRegistry) {
+    public QuestManager(NPlugin plugin, QuestUsersStorage questUsersStorage, ObjectiveRegistry objectiveRegistry) {
+        this.plugin = plugin;
+        this.questUsersStorage = questUsersStorage;
         this.questEventManager = new QuestEventManager(plugin, questUsersStorage, objectiveRegistry);
 
         QuestProgressFactoryRegistry factoryRegistry = new QuestProgressFactoryRegistry();
@@ -57,9 +57,38 @@ public class QuestManager {
         this.movementTracker.start();
     }
     
+    public void initializeQuestUpdateService(QuestStorage questStorage) {
+        if (this.questUpdateService == null && questStorage != null) {
+            this.questUpdateService = new QuestUpdateService(
+                this.plugin,
+                this.questUsersStorage,
+                this.questUsersStorage.getUserDataPersistent(),
+                questStorage
+            );
+        }
+    }
+    
+    public void startQuestUpdateService(QuestStorage questStorage) {
+        if (questStorage == null) {
+            return;
+        }
+        
+        if (this.questUpdateService == null) {
+            initializeQuestUpdateService(questStorage);
+        }
+        
+        if (this.questUpdateService != null) {
+            this.questUpdateService.start();
+        }
+    }
+    
     public void shutdown() {
         if (this.movementTracker != null) {
             this.movementTracker.stop();
+        }
+        
+        if (this.questUpdateService != null) {
+            this.questUpdateService.stop();
         }
     }
 

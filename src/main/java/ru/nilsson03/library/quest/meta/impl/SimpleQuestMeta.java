@@ -4,5 +4,11 @@ import ru.nilsson03.library.quest.meta.QuestMeta;
 
 import java.util.List;
 
-public record SimpleQuestMeta(int weight, List<String> description, String displayName, boolean daily)
-        implements QuestMeta {}
+public record SimpleQuestMeta(int weight, List<String> description, String displayName)
+        implements QuestMeta {
+    
+    @Override
+    public boolean daily() {
+        return false;
+    }
+}

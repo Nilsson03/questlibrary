@@ -2,7 +2,7 @@ package ru.nilsson03.library.quest.quest.simple.impl;
 
 import ru.nilsson03.library.bukkit.util.Namespace;
 import ru.nilsson03.library.quest.condition.QuestCondition;
-import ru.nilsson03.library.quest.meta.impl.SimpleQuestMeta;
+import ru.nilsson03.library.quest.meta.QuestMeta;
 import ru.nilsson03.library.quest.objective.Objective;
 import ru.nilsson03.library.quest.quest.simple.BaseQuest;
 import ru.nilsson03.library.quest.reward.QuestReward;
@@ -16,12 +16,12 @@ import java.util.Set;
 public class BaseQuestImpl implements BaseQuest {
     
     private final Namespace questUniqueKey;
-    private final SimpleQuestMeta questMeta;
+    private final QuestMeta questMeta;
     private final Set<QuestCondition> questCondition;
     private final List<Objective> objectives;
     private final QuestReward rewards;
 
-    public BaseQuestImpl(Namespace questUniqueKey, SimpleQuestMeta questMeta, Set<QuestCondition> questCondition,
+    public BaseQuestImpl(Namespace questUniqueKey, QuestMeta questMeta, Set<QuestCondition> questCondition,
                          List<Objective> objectives, QuestReward rewards) {
         this.questUniqueKey = Objects.requireNonNull(questUniqueKey, "QuestNamespace cannot be null");
         this.questMeta = Objects.requireNonNull(questMeta, "QuestMeta cannot be null");
@@ -36,7 +36,7 @@ public class BaseQuestImpl implements BaseQuest {
     }
 
     @Override
-    public SimpleQuestMeta questMeta() {
+    public QuestMeta questMeta() {
         return questMeta;
     }
 

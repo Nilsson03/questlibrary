@@ -1,7 +1,6 @@
 package ru.nilsson03.library.quest.condition.impl;
 
 import ru.nilsson03.library.quest.condition.QuestCondition;
-import ru.nilsson03.library.quest.core.Quest;
 import ru.nilsson03.library.quest.user.data.QuestUserData;
 import ru.nilsson03.library.quest.util.QuestUtil;
 

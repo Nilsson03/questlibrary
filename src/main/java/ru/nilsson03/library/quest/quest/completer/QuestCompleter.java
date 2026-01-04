@@ -1,6 +1,5 @@
 package ru.nilsson03.library.quest.quest.completer;
 
-import ru.nilsson03.library.quest.core.Quest;
 import ru.nilsson03.library.quest.user.data.QuestUserData;
 import ru.nilsson03.library.quest.user.data.impl.QuestUserReceiptsRewardsData;
 

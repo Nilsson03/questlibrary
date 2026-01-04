@@ -5,7 +5,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import ru.nilsson03.library.collection.Pair;
 import ru.nilsson03.library.quest.condition.QuestCondition;
-import ru.nilsson03.library.quest.core.Quest;
 import ru.nilsson03.library.quest.objective.Objective;
 import ru.nilsson03.library.quest.objective.goal.Goal;
 import ru.nilsson03.library.quest.user.data.QuestUserData;

@@ -5,7 +5,6 @@ import org.bukkit.plugin.Plugin;
 import ru.nilsson03.library.bukkit.file.FileHelper;
 import ru.nilsson03.library.bukkit.util.Namespace;
 import ru.nilsson03.library.bukkit.util.log.ConsoleLogger;
-import ru.nilsson03.library.quest.core.Quest;
 import ru.nilsson03.library.quest.storage.loader.QuestLoader;
 
 import java.io.File;
