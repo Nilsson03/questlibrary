@@ -7,6 +7,7 @@ import ru.nilsson03.library.quest.condition.parser.registry.ConditionParserRegis
 import ru.nilsson03.library.quest.core.manager.QuestManager;
 import ru.nilsson03.library.quest.meta.parser.registry.MetaParserRegistry;
 import ru.nilsson03.library.quest.objective.registry.ObjectiveRegistry;
+import ru.nilsson03.library.quest.reward.parser.registry.RewardParserRegistry;
 import ru.nilsson03.library.quest.user.storage.QuestUsersStorage;
 
 import java.util.Objects;
@@ -22,6 +23,7 @@ public class QuestService {
 
     private final ConditionParserRegistry conditionParserRegistry;
     private final MetaParserRegistry metaParserRegistry;
+    private final RewardParserRegistry rewardParserRegistry;
     private final ObjectiveRegistry objectiveRegistry;
     private final NPlugin plugin;
     private QuestManager questManager;
@@ -31,22 +33,27 @@ public class QuestService {
      * @param questUsersStorage             реализация хранения данных пользователей
      * @param customConditionParserRegistry кастомный регистер парсеров условий для выполнения квестов
      * @param customMetaParserRegistry      кастомный регистер парсеров метаданных квестов
+     * @param customRewardParserRegistry    кастомный регистер парсеров наград квестов
      */
     public QuestService(
             NPlugin plugin, QuestUsersStorage questUsersStorage,
             ConditionParserRegistry customConditionParserRegistry,
-            MetaParserRegistry customMetaParserRegistry) {
+            MetaParserRegistry customMetaParserRegistry,
+            RewardParserRegistry customRewardParserRegistry) {
         this.plugin = Objects.requireNonNull(plugin, "plugin cannot be null");
         
         this.conditionParserRegistry = Objects.requireNonNull(customConditionParserRegistry,
                                                              "customConditionParserRegistry cannot be null");
         this.metaParserRegistry = Objects.requireNonNull(customMetaParserRegistry,
                                                          "customMetaParserRegistry cannot be null");
+        this.rewardParserRegistry = Objects.requireNonNull(customRewardParserRegistry,
+                                                           "customRewardParserRegistry cannot be null");
         this.objectiveRegistry = new ObjectiveRegistry();
         
         this.objectiveRegistry.onRegistryInit();
         this.conditionParserRegistry.onRegistryInit();
         this.metaParserRegistry.onRegistryInit();
+        this.rewardParserRegistry.onRegistryInit();
 
         if (questUsersStorage != null) {
             this.questManager = new QuestManager(plugin, questUsersStorage, objectiveRegistry);
@@ -55,6 +62,7 @@ public class QuestService {
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             this.conditionParserRegistry.onRegistryAfterInit();
             this.metaParserRegistry.onRegistryAfterInit();
+            this.rewardParserRegistry.onRegistryAfterInit();
         }, 300);
     }
 
@@ -66,10 +74,12 @@ public class QuestService {
         this.objectiveRegistry = new ObjectiveRegistry();
         this.conditionParserRegistry = new ConditionParserRegistry(plugin);
         this.metaParserRegistry = new MetaParserRegistry(plugin);
+        this.rewardParserRegistry = new RewardParserRegistry(plugin);
         
         this.objectiveRegistry.onRegistryInit();
         this.conditionParserRegistry.onRegistryInit();
         this.metaParserRegistry.onRegistryInit();
+        this.rewardParserRegistry.onRegistryInit();
 
         if (questUsersStorage != null) {
             this.questManager = new QuestManager(plugin, questUsersStorage, objectiveRegistry);

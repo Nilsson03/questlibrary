@@ -13,7 +13,7 @@ import ru.nilsson03.library.quest.objective.parser.ObjectiveParser;
 import ru.nilsson03.library.quest.quest.simple.BaseQuest;
 import ru.nilsson03.library.quest.quest.simple.impl.BaseQuestImpl;
 import ru.nilsson03.library.quest.reward.QuestReward;
-import ru.nilsson03.library.quest.reward.parser.BaseRewardParser;
+import ru.nilsson03.library.quest.reward.parser.registry.RewardParserRegistry;
 import ru.nilsson03.library.quest.storage.loader.QuestLoader;
 
 import java.io.File;
@@ -26,12 +26,10 @@ import java.util.*;
 public class BaseQuestLoader implements QuestLoader {
 
     private final QuestService questService;
-    private final BaseRewardParser rewardParser;
     private final ObjectiveParser objectiveParser;
 
     public BaseQuestLoader(QuestService questService) {
         this.questService = Objects.requireNonNull(questService, "QuestService cannot be null");
-        this.rewardParser = new BaseRewardParser();
         this.objectiveParser = questService.getObjectiveRegistry().getObjectiveParser();
     }
 
@@ -149,7 +147,8 @@ public class BaseQuestLoader implements QuestLoader {
         }
 
         try {
-            return rewardParser.parse(rewardSection);
+            RewardParserRegistry rewardParserRegistry = questService.getRewardParserRegistry();
+            return rewardParserRegistry.parse(rewardSection);
         } catch (Exception e) {
             questService.getPlugin().getLogger().severe("Failed to parse quest reward: " + e.getMessage());
             throw new RuntimeException("Failed to parse quest reward", e);
