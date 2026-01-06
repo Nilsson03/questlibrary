@@ -177,6 +177,35 @@ public class QuestUpdateService {
         );
     }
 
+    public CompletableFuture<Long> getTimeUntilQuestReset(UUID uuid, BaseQuest quest) {
+        if (!(quest.questMeta() instanceof DailyQuestMeta dailyMeta)) {
+            return CompletableFuture.completedFuture(-1L);
+        }
+
+        long updateIntervalMillis = parseUpdateTime(dailyMeta.updateTime());
+        if (updateIntervalMillis <= 0) {
+            return CompletableFuture.completedFuture(-1L);
+        }
+
+        return getQuestCompletionTimeAsync(uuid, quest)
+            .thenApply(completionTime -> {
+                if (completionTime <= 0) {
+                    return -1L;
+                }
+
+                long currentTime = System.currentTimeMillis();
+                long timeSinceCompletion = currentTime - completionTime;
+                long timeUntilReset = updateIntervalMillis - timeSinceCompletion;
+
+                return Math.max(0L, timeUntilReset);
+            })
+            .exceptionally(ex -> {
+                ConsoleLogger.error(plugin, "Error getting time until reset for quest %s and user %s: %s",
+                    quest.questUniqueKey().getKey(), uuid, ex.getMessage());
+                return -1L;
+            });
+    }
+
     public static long parseUpdateTime(String updateTime) {
         if (updateTime == null || updateTime.isEmpty()) {
             return -1;
