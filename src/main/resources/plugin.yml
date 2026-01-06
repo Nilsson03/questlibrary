@@ -5,4 +5,5 @@ api-version: 1.16
 authors: [Nilsson03]
 depend:
   - BaseLibrary
+  - Database-core
 description: "The library for integration of quests into plugins."
