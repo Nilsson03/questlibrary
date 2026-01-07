@@ -2,6 +2,7 @@ package ru.nilsson03.library.quest.handler;
 
 import org.bukkit.Material;
 import org.bukkit.entity.EntityType;
+import org.bukkit.entity.Item;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.enchantment.EnchantItemEvent;
@@ -15,6 +16,7 @@ import org.bukkit.event.player.*;
 import org.bukkit.inventory.FurnaceInventory;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import ru.nilsson03.library.bukkit.util.log.ConsoleLogger;
 import ru.nilsson03.library.quest.handler.handlers.QuestEventHandler;
 import ru.nilsson03.library.quest.handler.handlers.impl.UniversalQuestEventHandler;
 import ru.nilsson03.library.quest.objective.registry.ObjectiveRegistry;
@@ -170,11 +172,15 @@ public class QuestEventHandlers {
 
         QuestEventHandler<PlayerFishEvent> playerFishEventQuestEventHandler = new UniversalQuestEventHandler<>(
                 questUsersStorage, (event, questUserData) -> {
-                    EntityType entityType = event.getCaught()
-                            .getType();
-                    questUserData.incrementProgressQuestsWithObjectiveType(
-                            objectiveRegistry.getObjectiveType("CATCH_FISH"),
-                            entityType, 1);
+                    if (event.getCaught() != null && event.getState() == PlayerFishEvent.State.CAUGHT_FISH) {
+                        if (event.getCaught() instanceof Item item) {
+                            ItemStack itemStack = item.getItemStack();
+                            Material type = itemStack.getType();
+                            questUserData.incrementProgressQuestsWithObjectiveType(
+                                    objectiveRegistry.getObjectiveType("CATCH_FISH"),
+                                    type, itemStack.getAmount());
+                        }
+                    }
                 });
 
         QuestEventHandler<EntityDeathEvent> entityDeathEventQuestEventHandlerKillEntity = new UniversalQuestEventHandler<>(
