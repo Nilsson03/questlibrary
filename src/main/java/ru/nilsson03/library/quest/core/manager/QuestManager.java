@@ -6,7 +6,6 @@ import lombok.Getter;
 import ru.nilsson03.library.NPlugin;
 import ru.nilsson03.library.quest.core.service.QuestLifecycleService;
 import ru.nilsson03.library.quest.core.service.QuestProgressService;
-import ru.nilsson03.library.quest.core.service.QuestUpdateService;
 import ru.nilsson03.library.quest.handler.QuestEventManager;
 import ru.nilsson03.library.quest.quest.simple.BaseQuest;
 import ru.nilsson03.library.quest.storage.QuestStorage;
@@ -27,7 +26,6 @@ public class QuestManager {
     private final QuestEventManager questEventManager;
     private final QuestProgressService questProgressService;
     private final MovementTracker movementTracker;
-    private QuestUpdateService questUpdateService;
 
     /**
      * Конструктор класса
@@ -57,39 +55,10 @@ public class QuestManager {
         this.questEventManager.register();
         this.movementTracker.start();
     }
-    
-    public void initializeQuestUpdateService(QuestStorage questStorage) {
-        if (this.questUpdateService == null && questStorage != null) {
-            this.questUpdateService = new QuestUpdateService(
-                this.plugin,
-                this.questUsersStorage,
-                this.questUsersStorage.getUserDataPersistent(),
-                questStorage
-            );
-        }
-    }
-    
-    public void startQuestUpdateService(QuestStorage questStorage) {
-        if (questStorage == null) {
-            return;
-        }
-        
-        if (this.questUpdateService == null) {
-            initializeQuestUpdateService(questStorage);
-        }
-        
-        if (this.questUpdateService != null) {
-            this.questUpdateService.start();
-        }
-    }
-    
+
     public void shutdown() {
         if (this.movementTracker != null) {
             this.movementTracker.stop();
-        }
-        
-        if (this.questUpdateService != null) {
-            this.questUpdateService.stop();
         }
     }
 

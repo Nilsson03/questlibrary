@@ -6,9 +6,4 @@ import java.util.List;
 
 public record SimpleQuestMeta(int weight, List<String> description, String displayName)
         implements QuestMeta {
-    
-    @Override
-    public boolean daily() {
-        return false;
-    }
 }
