@@ -25,6 +25,8 @@ public class BaseRewardParser implements Parser<QuestReward> {
             throw new IllegalArgumentException("commands cannot be empty");
         }
 
-        return new SimpleQuestReward(uniqueIdentificationKey, commands);
+        List<String> message = section.getStringList("message");
+
+        return new SimpleQuestReward(uniqueIdentificationKey, commands, message);
     }
 }

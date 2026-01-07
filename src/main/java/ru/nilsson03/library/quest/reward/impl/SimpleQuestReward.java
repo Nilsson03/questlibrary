@@ -6,6 +6,7 @@ import org.bukkit.entity.Player;
 import ru.nilsson03.library.quest.core.manager.QuestManager;
 import ru.nilsson03.library.quest.reward.QuestReward;
 import ru.nilsson03.library.quest.user.data.QuestUserData;
+import ru.nilsson03.library.text.messeger.UniversalMessenger;
 
 import java.util.List;
 import java.util.Objects;
@@ -21,10 +22,12 @@ public class SimpleQuestReward implements QuestReward {
 
     private final UUID uniqueIdentificationKey; // Должно быть уникальным
     private final List<String> commands;
+    private final List<String> message;
 
-    public SimpleQuestReward(final UUID uniqueIdentificationKey, final List<String> commands) {
+    public SimpleQuestReward(final UUID uniqueIdentificationKey, final List<String> commands, List<String> message) {
         this.uniqueIdentificationKey = uniqueIdentificationKey;
         this.commands = commands;
+        this.message = message;
     }
 
     public List<String> rewardCommands() {
@@ -34,6 +37,8 @@ public class SimpleQuestReward implements QuestReward {
     public UUID uniqueIdentificationKey() {
         return uniqueIdentificationKey;
     }
+
+    public List<String> messageInfo() { return  message; }
 
     /**
      * Выполнение команд для выдачи награды за выполнение квеста игроку
@@ -48,6 +53,10 @@ public class SimpleQuestReward implements QuestReward {
         if (offlinePlayer.hasPlayedBefore() && offlinePlayer.isOnline()) {
 
             Player player = offlinePlayer.getPlayer();
+
+            if (!message.isEmpty()) {
+                UniversalMessenger.send(player, message);
+            }
 
             if (!commands.isEmpty()) {
                 commands.forEach(command -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(),

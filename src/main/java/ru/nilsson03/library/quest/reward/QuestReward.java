@@ -7,6 +7,7 @@ import java.util.UUID;
 
 public interface QuestReward {
 
+    List<String> messageInfo();
     List<String> rewardCommands();
 
     UUID uniqueIdentificationKey();
