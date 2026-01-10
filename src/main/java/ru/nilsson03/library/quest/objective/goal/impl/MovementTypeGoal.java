@@ -1,4 +1,4 @@
-package ru.nightvision.quests.goal;
+package ru.nilsson03.library.quest.objective.goal.impl;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

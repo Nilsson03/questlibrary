@@ -1,13 +1,13 @@
-package ru.nightvision.quests.goal.factory;
+package ru.nilsson03.library.quest.objective.goal.factory.impl;
 
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.ItemStack;
-
-import ru.nightvision.quests.goal.EnchantWithLevelGoal;
+import ru.nilsson03.library.bukkit.util.ItemUtil;
 import ru.nilsson03.library.quest.objective.goal.Goal;
 import ru.nilsson03.library.quest.objective.goal.factory.ObjectiveGoalFactory;
+import ru.nilsson03.library.quest.objective.goal.impl.EnchantWithLevelGoal;
 
 import java.util.Map;
 
@@ -22,6 +22,11 @@ public class EnchantWithLevelGoalFactory implements ObjectiveGoalFactory {
             Object itemObj = parameters.get("item");
             if (itemObj instanceof ItemStack) {
                 targetType = (ItemStack) itemObj;
+            } else if (itemObj instanceof Map) {
+                // Если item - это Map с параметрами, используем SpigotItemBuilder
+                @SuppressWarnings("unchecked")
+                Map<String, Object> itemParams = (Map<String, Object>) itemObj;
+                targetType = ItemUtil.fromMap(itemParams);
             } else if (itemObj instanceof String) {
                 Material material = Material.getMaterial(itemObj.toString().toUpperCase());
                 if (material != null) {

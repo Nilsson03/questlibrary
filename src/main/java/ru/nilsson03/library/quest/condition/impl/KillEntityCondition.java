@@ -1,4 +1,4 @@
-package ru.nightvision.quests.condition;
+package ru.nilsson03.library.quest.condition.impl;
 
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;

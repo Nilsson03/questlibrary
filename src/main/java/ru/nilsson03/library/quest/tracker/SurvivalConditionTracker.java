@@ -1,15 +1,14 @@
-package ru.nightvision.quests.objective.survival;
+package ru.nilsson03.library.quest.tracker;
 
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.potion.PotionEffect;
-import org.bukkit.scheduler.BukkitTask;
-
-import ru.nightvision.quests.goal.SurvivalConditionGoal;
+import org.bukkit.scheduler.BukkitRunnable;
+import ru.nilsson03.library.quest.objective.goal.impl.SurvivalConditionGoal;
 import ru.nilsson03.library.quest.objective.registry.ObjectiveType;
-import ru.nilsson03.library.quest.user.storage.QuestUsersStorage;
 import ru.nilsson03.library.quest.user.data.QuestUserData;
+import ru.nilsson03.library.quest.user.storage.QuestUsersStorage;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -20,7 +19,7 @@ public class SurvivalConditionTracker {
     private final Plugin plugin;
     private final QuestUsersStorage questUsersStorage;
     private final ObjectiveType objectiveType;
-    private BukkitTask task;
+    private BukkitRunnable tracker;
     private final Map<UUID, Long> lastCheckTime = new HashMap<>();
 
     public SurvivalConditionTracker(Plugin plugin, QuestUsersStorage questUsersStorage, ObjectiveType objectiveType) {
@@ -30,51 +29,57 @@ public class SurvivalConditionTracker {
     }
 
     public void start() {
-        if (task != null) {
-            task.cancel();
+        tracker = new BukkitRunnable() {
+            @Override
+            public void run() {
+                for (Player player : Bukkit.getOnlinePlayers()) {
+                    checkPlayerSurvivalConditions(player);
+                }
+            }
+        };
+        
+        tracker.runTaskTimer(plugin, 20L, 20L);
+    }
+    
+    private void checkPlayerSurvivalConditions(Player player) {
+        UUID playerId = player.getUniqueId();
+        QuestUserData userData = questUsersStorage.getQuestUserData(playerId);
+
+        if (userData == null || !userData.hasActiveQuestWithCurrentObjectiveType(objectiveType)) {
+            lastCheckTime.remove(playerId);
+            return;
         }
 
-        task = Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, () -> {
-            long currentTime = System.currentTimeMillis();
+        long currentTime = System.currentTimeMillis();
+        Long lastCheck = lastCheckTime.get(playerId);
+        
+        if (lastCheck == null) {
+            lastCheckTime.put(playerId, currentTime);
+            return;
+        }
 
-            for (Player player : Bukkit.getOnlinePlayers()) {
-                UUID playerId = player.getUniqueId();
-                QuestUserData userData = questUsersStorage.getQuestUserData(playerId);
+        long elapsedSeconds = (currentTime - lastCheck) / 1000;
+        if (elapsedSeconds < 1) {
+            return;
+        }
 
-                if (userData == null || !userData.hasActiveQuestWithCurrentObjectiveType(objectiveType)) {
-                    continue;
-                }
+        for (PotionEffect effect : player.getActivePotionEffects()) {
+            SurvivalConditionGoal.SurvivalData survivalData = new SurvivalConditionGoal.SurvivalData(
+                effect.getType(),
+                player.getWorld(),
+                player.getLocation().getBlock().getBiome()
+            );
 
-                Long lastCheck = lastCheckTime.get(playerId);
-                if (lastCheck == null) {
-                    lastCheckTime.put(playerId, currentTime);
-                    continue;
-                }
+            userData.incrementProgressQuestsWithObjectiveType(objectiveType, survivalData, elapsedSeconds);
+        }
 
-                long elapsedSeconds = (currentTime - lastCheck) / 1000;
-                if (elapsedSeconds < 1) {
-                    continue;
-                }
-
-                for (PotionEffect effect : player.getActivePotionEffects()) {
-                    SurvivalConditionGoal.SurvivalData survivalData = new SurvivalConditionGoal.SurvivalData(
-                        effect.getType(),
-                        player.getWorld(),
-                        player.getLocation().getBlock().getBiome()
-                    );
-
-                    userData.incrementProgressQuestsWithObjectiveType(objectiveType, survivalData, elapsedSeconds);
-                }
-
-                lastCheckTime.put(playerId, currentTime);
-            }
-        }, 20L, 20L);
+        lastCheckTime.put(playerId, currentTime);
     }
 
     public void stop() {
-        if (task != null) {
-            task.cancel();
-            task = null;
+        if (tracker != null) {
+            tracker.cancel();
+            tracker = null;
         }
         lastCheckTime.clear();
     }

@@ -1,13 +1,12 @@
-package ru.nightvision.quests.goal.factory;
-
-import java.util.Map;
+package ru.nilsson03.library.quest.objective.goal.factory.impl;
 
 import org.bukkit.block.Biome;
 import org.bukkit.potion.PotionEffectType;
-
-import ru.nightvision.quests.goal.SurvivalConditionGoal;
 import ru.nilsson03.library.quest.objective.goal.Goal;
 import ru.nilsson03.library.quest.objective.goal.factory.ObjectiveGoalFactory;
+import ru.nilsson03.library.quest.objective.goal.impl.SurvivalConditionGoal;
+
+import java.util.Map;
 
 public class SurvivalConditionGoalFactory implements ObjectiveGoalFactory {
     

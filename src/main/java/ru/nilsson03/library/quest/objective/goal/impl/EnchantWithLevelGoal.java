@@ -1,4 +1,4 @@
-package ru.nightvision.quests.goal;
+package ru.nilsson03.library.quest.objective.goal.impl;
 
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.ItemStack;

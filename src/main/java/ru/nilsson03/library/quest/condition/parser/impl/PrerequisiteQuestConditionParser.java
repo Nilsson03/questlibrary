@@ -1,9 +1,9 @@
-package ru.nightvision.quests.condition.parser;
+package ru.nilsson03.library.quest.condition.parser.impl;
 
 import org.bukkit.configuration.ConfigurationSection;
 import ru.nilsson03.library.quest.condition.QuestCondition;
+import ru.nilsson03.library.quest.condition.impl.PrerequisiteQuestCondition;
 import ru.nilsson03.library.quest.parser.Parser;
-import ru.nightvision.quests.condition.PrerequisiteQuestCondition;
 
 import java.util.List;
 

@@ -1,9 +1,9 @@
-package ru.nightvision.quests.goal.factory;
+package ru.nilsson03.library.quest.objective.goal.factory.impl;
+
+import ru.nilsson03.library.quest.objective.goal.factory.ObjectiveGoalFactory;
+import ru.nilsson03.library.quest.objective.goal.impl.MovementTypeGoal;
 
 import java.util.Map;
-
-import ru.nightvision.quests.goal.MovementTypeGoal;
-import ru.nilsson03.library.quest.objective.goal.factory.ObjectiveGoalFactory;
 
 public class MovementTypeGoalFactory implements ObjectiveGoalFactory {
 

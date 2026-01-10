@@ -1,0 +1,100 @@
+id: "craft_legendary_sword"
+
+meta:
+  displayName: "Кузнец легенд"
+  weight: 5
+  daily: false
+  description:
+    - "Создай легендарный меч с особыми зачарованиями"
+    - "Награда: 1000 монет и редкие ресурсы"
+
+objectives:
+  # Пример 1: Простой ItemStack с материалом
+  - key: "craft_simple_sword"
+    type: "CRAFT_ITEM"
+    goals:
+      - type: "itemStack"
+        material: "DIAMOND_SWORD"
+        value: 1
+
+  # Пример 2: ItemStack с названием и описанием
+  - key: "craft_named_sword"
+    type: "CRAFT_ITEM"
+    goals:
+      - type: "itemStack"
+        material: "DIAMOND_SWORD"
+        name: "&cЛегендарный меч"
+        lore:
+          - "&7Урон: &c+10"
+          - "&7Прочность: &a999"
+          - "&8Создан великим кузнецом"
+        value: 1
+
+  # Пример 3: ItemStack с зачарованиями (точное совпадение)
+  - key: "craft_enchanted_sword"
+    type: "CRAFT_ITEM"
+    goals:
+      - type: "itemStack"
+        material: "DIAMOND_SWORD"
+        name: "&6Меч разрушения"
+        enchantments:
+          sharpness: 5
+          unbreaking: 3
+          fire_aspect: 2
+        flags:
+          - HIDE_ENCHANTS
+        value: 1
+        
+  # Пример 3.1: Только зачарования (без названия)
+  - key: "craft_sharp_sword"
+    type: "CRAFT_ITEM"
+    goals:
+      - type: "itemStack"
+        material: "DIAMOND_SWORD"
+        enchantments:
+          sharpness: 5
+        value: 1
+
+  # Пример 4: ItemStack с CustomModelData
+  - key: "craft_custom_sword"
+    type: "CRAFT_ITEM"
+    goals:
+      - type: "itemStack"
+        material: "DIAMOND_SWORD"
+        name: "&dМистический меч"
+        customModelData: 12345
+        unbreakable: true
+        lore:
+          - "&5Особый предмет"
+        enchantments:
+          sharpness: 10
+        value: 1
+
+  # Пример 5: Зачарование предмета (ENCHANT_WITH_LEVEL)
+  - key: "enchant_sword"
+    type: "ENCHANT_WITH_LEVEL"
+    goals:
+      - type: "enchantWithLevel"
+        # Можно указать конкретный предмет
+        item:
+          material: "DIAMOND_SWORD"
+          name: "&eМеч для зачарования"
+        enchantment: "sharpness"
+        minLevel: 5
+        maxLevel: 5
+        value: 1
+
+  # Пример 6: Сбор предметов с особыми свойствами
+  - key: "collect_special_items"
+    type: "BREAK_BLOCK"
+    goals:
+      - type: "itemStack"
+        material: "DIAMOND_ORE"
+        value: 10
+
+reward:
+  uniqueIdentificationKey: "d4e5f6a7-b8c9-0123-def4-567890abcdef"
+  commands:
+    - "eco give %player% 1000"
+    - "give %player% netherite_ingot 5"
+    - "tellraw %player% {\"text\":\"Ты стал легендарным кузнецом! +1000 монет\",\"color\":\"gold\"}"

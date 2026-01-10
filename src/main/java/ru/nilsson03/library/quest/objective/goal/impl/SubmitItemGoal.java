@@ -1,11 +1,9 @@
-package ru.nightvision.quests.goal;
-
-import java.util.concurrent.atomic.AtomicInteger;
+package ru.nilsson03.library.quest.objective.goal.impl;
 
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 
-import ru.nilsson03.library.quest.objective.goal.impl.ItemStackGoal;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class SubmitItemGoal extends ItemStackGoal {
 

@@ -1,4 +1,4 @@
-package ru.nightvision.quests.condition;
+package ru.nilsson03.library.quest.condition.impl;
 
 import ru.nilsson03.library.quest.condition.QuestCondition;
 import ru.nilsson03.library.quest.user.data.QuestUserData;
