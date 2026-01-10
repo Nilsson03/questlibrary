@@ -35,8 +35,8 @@ public class BaseQuestUserData implements QuestUserData {
             final List<QuestProgress> objectiveProgresses, QuestUserReceiptsRewardsData receiptsRewardsData)
             throws NullPointerException {
         this.uuid = Objects.requireNonNull(uuid, "User uuid cant be null");
-        this.completeQuests = Objects.requireNonNull(completeQuests, "Complete quests cant be null");
-        this.questsProgress = Objects.requireNonNull(objectiveProgresses, "Objective progresses cant be null");
+        this.completeQuests = Collections.synchronizedList(Objects.requireNonNull(completeQuests, "Complete quests cant be null"));
+        this.questsProgress = Collections.synchronizedList(Objects.requireNonNull(objectiveProgresses, "Objective progresses cant be null"));
         this.receiptsRewardsData = receiptsRewardsData;
     }
 
@@ -45,13 +45,16 @@ public class BaseQuestUserData implements QuestUserData {
      */
     @Override
     public synchronized void incrementProgressQuestsWithValueGoals(ObjectiveType objectiveType, long value) {
+
         if (!hasActiveQuestWithCurrentObjectiveType(objectiveType)) {
             return;
         }
 
         List<QuestProgress> objectivesProgress = getProgressByObjectiveType(objectiveType);
+        
         objectivesProgress.forEach(progress -> {
             Objective objective = progress.objective();
+            
             for (Goal goal : objective.goals()) {
                 progress.incrementProgress(goal, value);
             }
@@ -72,12 +75,8 @@ public class BaseQuestUserData implements QuestUserData {
         
         objectivesProgress.forEach(progress -> {
             Objective objective = progress.objective();
-            
             Optional<Goal> optionalGoal = objective.getGoal(object);
-            if (optionalGoal.isPresent()) {
-                Goal goal = optionalGoal.get();
-                progress.incrementProgress(goal, value);
-            }
+            optionalGoal.ifPresent(goal -> progress.incrementProgress(goal, value));
         });
     }
 
@@ -121,14 +120,14 @@ public class BaseQuestUserData implements QuestUserData {
      * {@inheritDoc}
      */
     @Override
-    public synchronized List<QuestProgress> getProgressByObjectiveType(final ObjectiveType objectiveType) {
+    public synchronized List<QuestProgress> getProgressByObjectiveType(ObjectiveType objectiveType) {
         if (!hasActiveQuestWithCurrentObjectiveType(objectiveType)) {
             return Collections.emptyList();
         }
 
         return questsProgress.stream()
                 .filter(progress -> progress.objective()
-                        .type() == objectiveType)
+                        .type().equals(objectiveType))
                 .collect(Collectors.toList());
     }
 
@@ -136,10 +135,10 @@ public class BaseQuestUserData implements QuestUserData {
      * {@inheritDoc}
      */
     @Override
-    public synchronized boolean hasActiveQuestWithCurrentObjectiveType(final ObjectiveType objectiveType) {
+    public synchronized boolean hasActiveQuestWithCurrentObjectiveType(ObjectiveType objectiveType) {
         return questsProgress.stream()
                 .anyMatch(progress -> progress.objective()
-                        .type() == objectiveType);
+                        .type().equals(objectiveType));
     }
 
     /**
@@ -240,7 +239,9 @@ public class BaseQuestUserData implements QuestUserData {
      */
     @Override
     public List<BaseQuest> completeQuests() {
-        return new ArrayList<>(completeQuests);
+        synchronized (completeQuests) {
+            return new ArrayList<>(completeQuests);
+        }
     }
 
     /**
@@ -269,7 +270,9 @@ public class BaseQuestUserData implements QuestUserData {
 
     @Override
     public List<QuestProgress> getActiveQuests() {
-        return new ArrayList<>(questsProgress);
+        synchronized (questsProgress) {
+            return new ArrayList<>(questsProgress);
+        }
     }
 
     public synchronized void addActiveQuests(List<QuestProgress> objectiveProgresses) {

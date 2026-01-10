@@ -4,8 +4,11 @@ import org.bukkit.Material;
 import org.bukkit.entity.EntityType;
 import org.bukkit.inventory.ItemStack;
 
-import ru.nilsson03.library.bukkit.util.ItemStackSerialize;
+import ru.nilsson03.library.bukkit.util.ItemUtil;
 import ru.nilsson03.library.quest.objective.goal.factory.ObjectiveGoalFactory;
+import ru.nilsson03.library.quest.objective.goal.factory.impl.EnchantWithLevelGoalFactory;
+import ru.nilsson03.library.quest.objective.goal.factory.impl.MovementTypeGoalFactory;
+import ru.nilsson03.library.quest.objective.goal.factory.impl.SurvivalConditionGoalFactory;
 import ru.nilsson03.library.quest.objective.goal.impl.EntityTypeGoal;
 import ru.nilsson03.library.quest.objective.goal.impl.ItemStackGoal;
 import ru.nilsson03.library.quest.objective.goal.impl.MaterialGoal;
@@ -55,14 +58,7 @@ public class ObjectiveGoalFactoryRegistry {
         });
 
         registerFactory("itemStack", parameters -> {
-            Object itemStackObj = parameters.get("itemStack");
-            ItemStack itemStack;
-            if (itemStackObj instanceof String) {
-                itemStack = ItemStackSerialize.deserialize(itemStackObj.toString())
-                                                .orElse(null);
-            } else {
-                itemStack = (ItemStack) itemStackObj;
-            }
+            ItemStack itemStack = ItemUtil.fromMap(parameters);
             long targetValue = Long.parseLong(parameters.get("value")
                                                         .toString());
             return new ItemStackGoal(itemStack, targetValue);
@@ -80,5 +76,8 @@ public class ObjectiveGoalFactoryRegistry {
                                                         .toString());
             return new MaterialGoal(material, targetValue);
         });
+        registerFactory("enchantWithLevel", new EnchantWithLevelGoalFactory());
+        registerFactory("movement", new MovementTypeGoalFactory());
+        registerFactory("survivalCondition", new SurvivalConditionGoalFactory());
     }
 }
