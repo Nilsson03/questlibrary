@@ -25,11 +25,6 @@ public class QuestLibrary extends NPlugin {
 
         createDataFolders();
 
-        FileHelper.loadConfigurations(this, "examples/combat_quest",
-                "examples/exploration_quest",
-                "examples/multi_objective_quest",
-                "examples/simple_quest");
-
         try {
             questStorageManager = new QuestStorageManager();
         } catch (IllegalStateException exception) {

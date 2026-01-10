@@ -23,7 +23,6 @@ public class EnchantWithLevelGoalFactory implements ObjectiveGoalFactory {
             if (itemObj instanceof ItemStack) {
                 targetType = (ItemStack) itemObj;
             } else if (itemObj instanceof Map) {
-                // Если item - это Map с параметрами, используем SpigotItemBuilder
                 @SuppressWarnings("unchecked")
                 Map<String, Object> itemParams = (Map<String, Object>) itemObj;
                 targetType = ItemUtil.fromMap(itemParams);
