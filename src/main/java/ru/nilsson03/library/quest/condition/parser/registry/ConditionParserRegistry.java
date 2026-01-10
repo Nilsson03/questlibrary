@@ -3,12 +3,7 @@ package ru.nilsson03.library.quest.condition.parser.registry;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.plugin.Plugin;
 import ru.nilsson03.library.quest.condition.QuestCondition;
-import ru.nilsson03.library.quest.condition.parser.impl.AndConditionParser;
-import ru.nilsson03.library.quest.condition.parser.impl.HasItemConditionParser;
-import ru.nilsson03.library.quest.condition.parser.impl.LevelConditionParser;
-import ru.nilsson03.library.quest.condition.parser.impl.OrConditionParser;
-import ru.nilsson03.library.quest.condition.parser.impl.PersmissionConditionParser;
-import ru.nilsson03.library.quest.condition.parser.impl.QuestCompletedConditionParser;
+import ru.nilsson03.library.quest.condition.parser.impl.*;
 import ru.nilsson03.library.quest.exception.QuestStorageException;
 import ru.nilsson03.library.quest.parser.Parser;
 import ru.nilsson03.library.quest.parser.ParserRegistry;
@@ -53,6 +48,8 @@ public class ConditionParserRegistry extends ParserRegistry<Parser<QuestConditio
         registerParser(pluginName, "or", new OrConditionParser(this));
         registerParser(pluginName, "permission", new PersmissionConditionParser());
         registerParser(pluginName, "level", new LevelConditionParser());
+        registerParser(pluginName, "kill_entity_condition", new KillEntityConditionParser());
+        registerParser(pluginName, "prerequisite_quest_condition", new PrerequisiteQuestConditionParser());
     }
     
     @Override

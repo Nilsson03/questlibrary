@@ -5,6 +5,7 @@ import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.enchantment.EnchantItemEvent;
 import org.bukkit.event.entity.*;
 import org.bukkit.event.inventory.CraftItemEvent;
+import org.bukkit.event.inventory.FurnaceExtractEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.*;
 import ru.nilsson03.library.quest.objective.goal.registry.ObjectiveGoalFactoryRegistry;
@@ -27,18 +28,12 @@ public class ObjectiveRegistry {
         this.objectiveParser = new ObjectiveParser(this, objectiveGoalRegistry);
     }
 
-    /**
-     * Регистрирует новый тип задачи.
-     */
     public void registerObjectiveType(ObjectiveType type) {
         Objects.requireNonNull(type, "ObjectiveType cannot be null");
         objectiveTypes.putIfAbsent(type.key()
                                        .toLowerCase(), type);
     }
 
-    /**
-     * Возвращает тип задачи по ключу.
-     */
     public ObjectiveType getObjectiveType(String key) {
         Objects.requireNonNull(key, "Key cannot be null");
 
@@ -51,9 +46,8 @@ public class ObjectiveRegistry {
         registerObjectiveType(ObjectiveType.create("EXP_CHANGE", PlayerExpChangeEvent.class));
         registerObjectiveType(ObjectiveType.create("TRANSFORM_ENTITY", EntityTransformEvent.class));
         registerObjectiveType(ObjectiveType.create("BREAK_BLOCK", BlockBreakEvent.class));
-        //        registerObjectiveType(ObjectiveType.create("GAIN_EXP", PlayerPickupExperienceEvent.class));
         registerObjectiveType(ObjectiveType.create("CRAFT_ITEM", CraftItemEvent.class));
-        registerObjectiveType(ObjectiveType.create("SMELT_ITEM", InventoryClickEvent.class));
+        registerObjectiveType(ObjectiveType.create("SMELT_ITEM", FurnaceExtractEvent.class));
         registerObjectiveType(ObjectiveType.create("BLOCK_PLACE", BlockPlaceEvent.class));
         registerObjectiveType(ObjectiveType.create("EAT_ITEM", PlayerItemConsumeEvent.class));
         registerObjectiveType(ObjectiveType.create("TAME_ENTITY", EntityTameEvent.class));
@@ -62,11 +56,30 @@ public class ObjectiveRegistry {
         registerObjectiveType(ObjectiveType.create("ANVIL", InventoryClickEvent.class));
         registerObjectiveType(ObjectiveType.create("ENCHANT", EnchantItemEvent.class));
         registerObjectiveType(ObjectiveType.create("MOVE", PlayerMoveEvent.class));
-        registerObjectiveType(ObjectiveType.create("TRADE_VILLAGER", PlayerInteractEntityEvent.class));
+        registerObjectiveType(ObjectiveType.create("TRADE_VILLAGER", InventoryClickEvent.class));
         registerObjectiveType(ObjectiveType.create("DRINK_POTION", PlayerItemConsumeEvent.class));
         registerObjectiveType(ObjectiveType.create("CATCH_FISH", PlayerFishEvent.class));
         registerObjectiveType(ObjectiveType.create("DEATH", EntityDeathEvent.class));
         registerObjectiveType(ObjectiveType.create("KILL_ENTITY", EntityDeathEvent.class));
+        registerObjectiveType(ObjectiveType.create("BLOCK_SHIELD", EntityDamageByEntityEvent.class));
+        registerObjectiveType(ObjectiveType.create("BREED_ENTITY", EntityBreedEvent.class));
+        registerObjectiveType(ObjectiveType.create("CURE_VILLAGER", EntityTransformEvent.class));
+        registerObjectiveType(ObjectiveType.create("USE_TOTEM", EntityResurrectEvent.class));
+        registerObjectiveType(ObjectiveType.create("SHEAR_SHEEP", PlayerShearEntityEvent.class));
+        registerObjectiveType(ObjectiveType.create("USE_COMPOSTER", PlayerInteractEvent.class));
+        registerObjectiveType(ObjectiveType.create("PLAYTIME", PlayerJoinEvent.class));
+        registerObjectiveType(ObjectiveType.create("COMPOST_FULL", PlayerInteractEvent.class));
+        registerObjectiveType(ObjectiveType.create("ENCHANT_WITH_LEVEL", EnchantItemEvent.class));
+        registerObjectiveType(ObjectiveType.create("SURVIVAL_CONDITION", PlayerJoinEvent.class));
+        registerObjectiveType(ObjectiveType.create("RESURRECT_DRAGON", CreatureSpawnEvent.class));
+        registerObjectiveType(ObjectiveType.create("IGNITE_TNT", PlayerInteractEvent.class));
+        registerObjectiveType(ObjectiveType.create("TNT_BREAK_BLOCKS", EntityExplodeEvent.class));
+        registerObjectiveType(ObjectiveType.create("FILL_COMPOSTER", PlayerInteractEvent.class));
+        registerObjectiveType(ObjectiveType.create("COLLECT_FROM_COMPOSTER", PlayerInteractEvent.class));
+        registerObjectiveType(ObjectiveType.create("USE_GRINDSTONE_ITEM", InventoryClickEvent.class));
+        registerObjectiveType(ObjectiveType.create("USE_FURNACE", FurnaceExtractEvent.class));
+        registerObjectiveType(ObjectiveType.create("SUBMIT_ITEM", PlayerInteractEvent.class));
+
     }
 
     public ObjectiveParser getObjectiveParser() {

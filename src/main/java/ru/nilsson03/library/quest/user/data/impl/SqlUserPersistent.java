@@ -499,6 +499,7 @@ public class SqlUserPersistent implements UserDataPersistent {
 
     public CompletableFuture<Void> deleteQuestDataAsync(UUID uuid, String questKey) {
         return CompletableFuture.runAsync(() -> {
+            ConsoleLogger.info(plugin, "Starting deleteQuestData for user %s, quest %s", uuid, questKey);
             try (Connection connection = getConnection()) {
                 connection.setAutoCommit(false);
                 try {
@@ -517,9 +518,10 @@ public class SqlUserPersistent implements UserDataPersistent {
                     }
 
                     connection.commit();
-                    ConsoleLogger.debug(plugin.getName(), "Deleted quest data for user %s, quest %s", uuid, questKey);
+                    ConsoleLogger.info(plugin, "Successfully committed deletion for user %s, quest %s", uuid, questKey);
                 } catch (SQLException e) {
                     connection.rollback();
+                    ConsoleLogger.error(plugin, "SQL error during deletion, rolled back: %s", e.getMessage());
                     throw e;
                 }
             } catch (SQLException e) {

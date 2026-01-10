@@ -57,6 +57,7 @@ public class QuestService {
 
         if (questUsersStorage != null) {
             this.questManager = new QuestManager(plugin, questUsersStorage, objectiveRegistry);
+            Bukkit.getPluginManager().registerEvents(this.questManager, plugin);
         }
 
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
