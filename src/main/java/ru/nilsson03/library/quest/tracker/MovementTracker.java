@@ -7,6 +7,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitRunnable;
 
+import ru.nilsson03.library.quest.objective.goal.impl.MovementTypeGoal;
 import ru.nilsson03.library.quest.objective.registry.ObjectiveRegistry;
 import ru.nilsson03.library.quest.user.data.QuestUserData;
 import ru.nilsson03.library.quest.user.storage.QuestUsersStorage;
@@ -76,13 +77,15 @@ public class MovementTracker {
         if (distance > 0) {
             QuestUserData questUserData = questUsersStorage.getQuestUserData(uuid);
             
-            if (questUserData != null) {
-                MovementType movementType = determineMovementType(player);
+            if (questUserData != null && questUserData.hasActiveQuestWithCurrentObjectiveType(
+                    objectiveRegistry.getObjectiveType("MOVE"))) {
+                MovementTypeGoal.MovementType movementType = determineMovementType(player);
+                long roundedDistance = (long) Math.round(distance);
                 
                 questUserData.incrementProgressQuestsWithObjectiveType(
                     objectiveRegistry.getObjectiveType("MOVE"), 
                     movementType, 
-                    (long) Math.round(distance)
+                    roundedDistance
                 );
             }
         }
@@ -93,9 +96,9 @@ public class MovementTracker {
     /**
      * Определяет тип движения игрока
      */
-    private MovementType determineMovementType(Player player) {
+    private MovementTypeGoal.MovementType determineMovementType(Player player) {
         if (player.isGliding()) {
-            return MovementType.FLY;
+            return MovementTypeGoal.MovementType.FLY;
         } else if (player.isInsideVehicle() && player.getVehicle() != null) {
             EntityType vehicleType = player.getVehicle().getType();
             
@@ -104,37 +107,26 @@ public class MovementTracker {
                 vehicleType == EntityType.MULE || 
                 vehicleType == EntityType.SKELETON_HORSE || 
                 vehicleType == EntityType.ZOMBIE_HORSE) {
-                return MovementType.HORSE;
+                return MovementTypeGoal.MovementType.HORSE;
             }
             else if (vehicleType == EntityType.BOAT || vehicleType.name().contains("BOAT")) {
-                return MovementType.BOAT;
+                return MovementTypeGoal.MovementType.BOAT;
             }
             else if (vehicleType == EntityType.PIG) {
-                return MovementType.PIG;
+                return MovementTypeGoal.MovementType.PIG;
             }
             else if (vehicleType.name().equals("STRIDER")) {
-                return MovementType.STRIDER;
+                return MovementTypeGoal.MovementType.STRIDER;
             }
             else {
-                return MovementType.VEHICLE;
+                return MovementTypeGoal.MovementType.VEHICLE;
             }
         } else {
-            return MovementType.WALK;
+            return MovementTypeGoal.MovementType.WALK;
         }
     }
     
     public void removePlayer(UUID uuid) {
         lastLocations.remove(uuid);
-    }
-
-    public enum MovementType {
-        WALK,      // Ходьба/бег
-        FLY,       // Полёт с элитрами
-        BOAT,      // Лодка
-        HORSE,     // Лошадь, осёл, мул и т.д.
-        PIG,       // Свинья
-        STRIDER,   // Страйдер
-        VEHICLE,   // Другие транспортные средства
-        ANY        // Любой тип движения
     }
 }
