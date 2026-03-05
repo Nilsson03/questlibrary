@@ -54,10 +54,20 @@ public class SqlUserPersistent implements UserDataPersistent {
     private void initializeTables() {
         try (Connection connection = getConnection()) {
             createUsersTable(connection);
+            ConsoleLogger.info(plugin, "Created table: %s", QUEST_USERS_TABLE);
+            
             createCompletedQuestsTable(connection);
+            ConsoleLogger.info(plugin, "Created table: %s", QUEST_COMPLETED_TABLE);
+            
             createActiveProgressTable(connection);
+            ConsoleLogger.info(plugin, "Created table: %s", QUEST_ACITVE_PROGRESS_TABLE);
+            
             createProgressGoalsTable(connection);
+            ConsoleLogger.info(plugin, "Created table: %s", QUEST_PROGRESS_GOALS_TABLE);
+            
             createReceiptsRewardsTable(connection);
+            ConsoleLogger.info(plugin, "Created table: %s", QUEST_RECEIPTS_REWARDS_TABLE);
+            
             ConsoleLogger.info(plugin, "SQL tables for quest user data initialized successfully.");
         } catch (SQLException e) {
             ConsoleLogger.error(plugin, "Failed to initialize SQL tables: %s", e.getMessage());
