@@ -141,4 +141,15 @@ public interface QuestUserData {
      * @param quest квест, прогрессы которого нужно удалить
      */
     void removeQuestProgress(BaseQuest quest);
+
+    /**
+     * Имеет ли игрок хоть один активный квест
+     */
+    boolean hasActiveQuests();
+
+    /**
+     * Количество активных у игрока квестов
+     */
+    int countActiveQuests();
 }
+

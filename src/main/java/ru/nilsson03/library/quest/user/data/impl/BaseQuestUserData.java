@@ -268,6 +268,23 @@ public class BaseQuestUserData implements QuestUserData {
         completeQuests.add(quest);
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    public boolean hasActiveQuests() {
+        return getActiveQuests()
+                .stream()
+                .findAny()
+                .isPresent();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public int countActiveQuests() {
+        return getActiveQuests().size();
+    }
+
     @Override
     public List<QuestProgress> getActiveQuests() {
         synchronized (questsProgress) {
