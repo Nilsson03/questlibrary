@@ -1,5 +1,7 @@
 package ru.nilsson03.library.quest.objective.goal.impl;
 
+import java.util.Map;
+
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -9,8 +11,6 @@ import org.bukkit.potion.PotionData;
 import lombok.AllArgsConstructor;
 import ru.nilsson03.library.bukkit.util.ItemStackSerialize;
 import ru.nilsson03.library.quest.objective.goal.sub.ObjectiveGoal;
-
-import java.util.Map;
 
 @AllArgsConstructor
 public class ItemStackGoal implements ObjectiveGoal {
@@ -70,7 +70,7 @@ public class ItemStackGoal implements ObjectiveGoal {
                 return false;
             }
         }
-        
+
         return true;
     }
 
@@ -97,7 +97,7 @@ public class ItemStackGoal implements ObjectiveGoal {
         } else if (targetMeta.hasDisplayName() != otherMeta.hasDisplayName()) {
             return false;
         }
-        
+
         return true;
     }
 

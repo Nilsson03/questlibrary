@@ -1,19 +1,34 @@
 package ru.nilsson03.library.quest.objective.registry;
 
-import org.bukkit.event.block.BlockBreakEvent;
-import org.bukkit.event.block.BlockPlaceEvent;
-import org.bukkit.event.enchantment.EnchantItemEvent;
-import org.bukkit.event.entity.*;
-import org.bukkit.event.inventory.CraftItemEvent;
-import org.bukkit.event.inventory.FurnaceExtractEvent;
-import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.event.player.*;
-import ru.nilsson03.library.quest.objective.goal.registry.ObjectiveGoalFactoryRegistry;
-import ru.nilsson03.library.quest.objective.parser.ObjectiveParser;
-
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
+
+import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.enchantment.EnchantItemEvent;
+import org.bukkit.event.entity.CreatureSpawnEvent;
+import org.bukkit.event.entity.EntityBreedEvent;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntityDeathEvent;
+import org.bukkit.event.entity.EntityExplodeEvent;
+import org.bukkit.event.entity.EntityResurrectEvent;
+import org.bukkit.event.entity.EntityTameEvent;
+import org.bukkit.event.entity.EntityTransformEvent;
+import org.bukkit.event.inventory.CraftItemEvent;
+import org.bukkit.event.inventory.FurnaceExtractEvent;
+import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.player.PlayerExpChangeEvent;
+import org.bukkit.event.player.PlayerFishEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerItemBreakEvent;
+import org.bukkit.event.player.PlayerItemConsumeEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerMoveEvent;
+import org.bukkit.event.player.PlayerShearEntityEvent;
+
+import ru.nilsson03.library.quest.objective.goal.registry.ObjectiveGoalFactoryRegistry;
+import ru.nilsson03.library.quest.objective.parser.ObjectiveParser;
 
 public class ObjectiveRegistry {
 
@@ -31,7 +46,7 @@ public class ObjectiveRegistry {
     public void registerObjectiveType(ObjectiveType type) {
         Objects.requireNonNull(type, "ObjectiveType cannot be null");
         objectiveTypes.putIfAbsent(type.key()
-                                       .toLowerCase(), type);
+                .toLowerCase(), type);
     }
 
     public ObjectiveType getObjectiveType(String key) {
@@ -66,9 +81,7 @@ public class ObjectiveRegistry {
         registerObjectiveType(ObjectiveType.create("CURE_VILLAGER", EntityTransformEvent.class));
         registerObjectiveType(ObjectiveType.create("USE_TOTEM", EntityResurrectEvent.class));
         registerObjectiveType(ObjectiveType.create("SHEAR_SHEEP", PlayerShearEntityEvent.class));
-        registerObjectiveType(ObjectiveType.create("USE_COMPOSTER", PlayerInteractEvent.class));
         registerObjectiveType(ObjectiveType.create("PLAYTIME", PlayerJoinEvent.class));
-        registerObjectiveType(ObjectiveType.create("COMPOST_FULL", PlayerInteractEvent.class));
         registerObjectiveType(ObjectiveType.create("ENCHANT_WITH_LEVEL", EnchantItemEvent.class));
         registerObjectiveType(ObjectiveType.create("SURVIVAL_CONDITION", PlayerJoinEvent.class));
         registerObjectiveType(ObjectiveType.create("RESURRECT_DRAGON", CreatureSpawnEvent.class));
@@ -79,7 +92,7 @@ public class ObjectiveRegistry {
         registerObjectiveType(ObjectiveType.create("USE_GRINDSTONE_ITEM", InventoryClickEvent.class));
         registerObjectiveType(ObjectiveType.create("USE_FURNACE", FurnaceExtractEvent.class));
         registerObjectiveType(ObjectiveType.create("SUBMIT_ITEM", PlayerInteractEvent.class));
-
+        registerObjectiveType(ObjectiveType.create("BLOCK_DAMAGE_SHIELD", EntityDamageByEntityEvent.class));
     }
 
     public ObjectiveParser getObjectiveParser() {

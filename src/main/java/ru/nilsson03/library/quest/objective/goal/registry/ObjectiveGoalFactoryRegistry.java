@@ -1,5 +1,9 @@
 package ru.nilsson03.library.quest.objective.goal.registry;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+
 import org.bukkit.Material;
 import org.bukkit.entity.EntityType;
 import org.bukkit.inventory.ItemStack;
@@ -8,15 +12,12 @@ import ru.nilsson03.library.bukkit.util.ItemUtil;
 import ru.nilsson03.library.quest.objective.goal.factory.ObjectiveGoalFactory;
 import ru.nilsson03.library.quest.objective.goal.factory.impl.EnchantWithLevelGoalFactory;
 import ru.nilsson03.library.quest.objective.goal.factory.impl.MovementTypeGoalFactory;
+import ru.nilsson03.library.quest.objective.goal.factory.impl.SubmitItemGoalFactory;
 import ru.nilsson03.library.quest.objective.goal.factory.impl.SurvivalConditionGoalFactory;
 import ru.nilsson03.library.quest.objective.goal.impl.EntityTypeGoal;
 import ru.nilsson03.library.quest.objective.goal.impl.ItemStackGoal;
 import ru.nilsson03.library.quest.objective.goal.impl.MaterialGoal;
 import ru.nilsson03.library.quest.objective.goal.impl.NumericGoal;
-
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
 
 public class ObjectiveGoalFactoryRegistry {
 
@@ -40,7 +41,7 @@ public class ObjectiveGoalFactoryRegistry {
 
         registerFactory("value", parameters -> {
             long targetValue = Long.parseLong(parameters.get("value")
-                                                        .toString());
+                    .toString());
             return new NumericGoal(targetValue);
         });
 
@@ -53,14 +54,14 @@ public class ObjectiveGoalFactoryRegistry {
                 entityType = (EntityType) entityTypeObj;
             }
             long targetValue = Long.parseLong(parameters.get("value")
-                                                        .toString());
+                    .toString());
             return new EntityTypeGoal(entityType, targetValue);
         });
 
         registerFactory("itemStack", parameters -> {
             ItemStack itemStack = ItemUtil.fromMap(parameters);
             long targetValue = Long.parseLong(parameters.get("value")
-                                                        .toString());
+                    .toString());
             return new ItemStackGoal(itemStack, targetValue);
         });
 
@@ -73,11 +74,12 @@ public class ObjectiveGoalFactoryRegistry {
                 material = (Material) materialObj;
             }
             long targetValue = Long.parseLong(parameters.get("value")
-                                                        .toString());
+                    .toString());
             return new MaterialGoal(material, targetValue);
         });
         registerFactory("enchantWithLevel", new EnchantWithLevelGoalFactory());
         registerFactory("movement", new MovementTypeGoalFactory());
         registerFactory("survivalCondition", new SurvivalConditionGoalFactory());
+        registerFactory("submitItem", new SubmitItemGoalFactory());
     }
 }
