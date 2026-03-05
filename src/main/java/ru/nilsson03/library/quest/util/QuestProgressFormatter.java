@@ -2,6 +2,7 @@ package ru.nilsson03.library.quest.util;
 
 import org.bukkit.Material;
 import org.bukkit.entity.EntityType;
+import ru.nilsson03.library.bukkit.util.TranslationUtil;
 import ru.nilsson03.library.quest.objective.Objective;
 import ru.nilsson03.library.quest.objective.goal.Goal;
 import ru.nilsson03.library.quest.objective.goal.impl.EntityTypeGoal;
@@ -36,12 +37,10 @@ public class QuestProgressFormatter {
         
         Objective objective = questProgress.objective();
         Map<Goal, Long> progress = questProgress.getProgress();
-        
-        // Добавляем заголовок задачи
+
         String objectiveHeader = formatObjectiveHeader(objective, questProgress.isCompleted());
         result.add(objectiveHeader);
-        
-        // Добавляем цели с прогрессом
+
         for (Goal goal : objective.goals()) {
             long currentProgress = progress.getOrDefault(goal, 0L);
             long requiredProgress = goal.targetValue();
@@ -133,7 +132,6 @@ public class QuestProgressFormatter {
      * Использует description если доступно, иначе форматирует ключ.
      */
     private static String formatObjectiveName(Objective objective) {
-        // Если есть описание, используем его
         if (objective.description() != null && !objective.description().isEmpty()) {
             return objective.description();
         }
@@ -199,7 +197,7 @@ public class QuestProgressFormatter {
      * Форматирует имя материала в читаемый вид.
      */
     private static String formatMaterialName(Material material) {
-        String name = material.name().toLowerCase().replace("_", " ");
+        String name = TranslationUtil.translateMaterial(material);
         return capitalizeWords(name);
     }
 
@@ -210,7 +208,7 @@ public class QuestProgressFormatter {
         if (entityType == null) {
             return "Unknown Entity";
         }
-        String name = entityType.name().toLowerCase().replace("_", " ");
+        String name = TranslationUtil.translateMob(entityType);
         return capitalizeWords(name);
     }
 
