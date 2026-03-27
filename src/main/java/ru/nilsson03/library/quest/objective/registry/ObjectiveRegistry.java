@@ -58,6 +58,7 @@ public class ObjectiveRegistry {
     }
 
     public void onRegistryInit() {
+        registerObjectiveType(ObjectiveType.create("TRADE_VILLAGER", InventoryClickEvent.class)); // Удалить
         registerObjectiveType(ObjectiveType.create("EXP_CHANGE", PlayerExpChangeEvent.class));
         registerObjectiveType(ObjectiveType.create("TRANSFORM_ENTITY", EntityTransformEvent.class));
         registerObjectiveType(ObjectiveType.create("BREAK_BLOCK", BlockBreakEvent.class));
@@ -71,7 +72,6 @@ public class ObjectiveRegistry {
         registerObjectiveType(ObjectiveType.create("ANVIL", InventoryClickEvent.class));
         registerObjectiveType(ObjectiveType.create("ENCHANT", EnchantItemEvent.class));
         registerObjectiveType(ObjectiveType.create("MOVE", PlayerMoveEvent.class));
-        registerObjectiveType(ObjectiveType.create("TRADE_VILLAGER", InventoryClickEvent.class));
         registerObjectiveType(ObjectiveType.create("DRINK_POTION", PlayerItemConsumeEvent.class));
         registerObjectiveType(ObjectiveType.create("CATCH_FISH", PlayerFishEvent.class));
         registerObjectiveType(ObjectiveType.create("DEATH", EntityDeathEvent.class));
@@ -87,12 +87,12 @@ public class ObjectiveRegistry {
         registerObjectiveType(ObjectiveType.create("RESURRECT_DRAGON", CreatureSpawnEvent.class));
         registerObjectiveType(ObjectiveType.create("IGNITE_TNT", PlayerInteractEvent.class));
         registerObjectiveType(ObjectiveType.create("TNT_BREAK_BLOCKS", EntityExplodeEvent.class));
-        registerObjectiveType(ObjectiveType.create("FILL_COMPOSTER", PlayerInteractEvent.class));
         registerObjectiveType(ObjectiveType.create("COLLECT_FROM_COMPOSTER", PlayerInteractEvent.class));
         registerObjectiveType(ObjectiveType.create("USE_GRINDSTONE_ITEM", InventoryClickEvent.class));
         registerObjectiveType(ObjectiveType.create("USE_FURNACE", FurnaceExtractEvent.class));
         registerObjectiveType(ObjectiveType.create("SUBMIT_ITEM", PlayerInteractEvent.class));
         registerObjectiveType(ObjectiveType.create("BLOCK_DAMAGE_SHIELD", EntityDamageByEntityEvent.class));
+        registerObjectiveType(ObjectiveType.create("FILL_COMPOSTER", PlayerInteractEvent.class));
     }
 
     public ObjectiveParser getObjectiveParser() {

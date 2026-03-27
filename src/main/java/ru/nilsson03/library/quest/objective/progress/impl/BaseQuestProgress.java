@@ -1,21 +1,25 @@
 package ru.nilsson03.library.quest.objective.progress.impl;
 
-import com.google.common.base.Preconditions;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
-import ru.nilsson03.library.quest.core.event.UserCompleteQuestEvent;
+import com.google.common.base.Preconditions;
+
 import ru.nilsson03.library.quest.core.event.UserQuestProgressEvent;
 import ru.nilsson03.library.quest.objective.Objective;
 import ru.nilsson03.library.quest.objective.goal.Goal;
 import ru.nilsson03.library.quest.objective.progress.QuestProgress;
-import ru.nilsson03.library.quest.quest.completer.CompleteStatus;
 import ru.nilsson03.library.quest.quest.simple.BaseQuest;
 import ru.nilsson03.library.quest.user.data.QuestUserData;
-
-import java.util.*;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 public class BaseQuestProgress implements QuestProgress {
 
@@ -62,17 +66,10 @@ public class BaseQuestProgress implements QuestProgress {
     /**
      * {@inheritDoc}
      */
-    public void setProgress(Goal goal, long progress, boolean checkPlayerEffects) {
-        setProgress(goal, progress, checkPlayerEffects, true);
-    }
-    
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void setProgressDirectly(Goal goal, long progress) {
         Objects.requireNonNull(goal, "Goal cannot be null");
-        
+
         try {
             this.progress.put(goal, progress);
         } catch (UnsupportedOperationException exception) {
@@ -81,13 +78,16 @@ public class BaseQuestProgress implements QuestProgress {
             this.progress = newProgressMap;
         }
     }
-    
-    public void setProgress(Goal goal, long progress, boolean checkPlayerEffects, boolean checkCompletion) {
+
+    /**
+     * {@inheritDoc}
+     */
+    public void setProgress(Goal goal, long progress, boolean checkPlayerEffects) {
         Objects.requireNonNull(goal, "Goal cannot be null");
 
         Player player = Bukkit.getPlayer(user.uuid());
         Preconditions.checkArgument(player != null, "Player not found");
-        
+
         boolean canIncrement = canIncrementProgress(goal, objective);
 
         if (canIncrement) {
@@ -98,14 +98,15 @@ public class BaseQuestProgress implements QuestProgress {
             long requiredProgress = objective.getRequiredProgress(goal);
             long currentProgress = getValue(goal);
             long newProgress = progress;
-            
+
             if (newProgress > requiredProgress) {
                 newProgress = requiredProgress;
             }
 
-            UserQuestProgressEvent event = new UserQuestProgressEvent(user, quest, objective, goal, currentProgress, newProgress);
+            UserQuestProgressEvent event = new UserQuestProgressEvent(user, quest, objective, goal, currentProgress,
+                    newProgress);
             Bukkit.getPluginManager().callEvent(event);
-            
+
             if (event.isCancelled()) {
                 return;
             }
@@ -117,31 +118,6 @@ public class BaseQuestProgress implements QuestProgress {
                 newProgressMap.put(goal, event.getNewValue());
                 this.progress = newProgressMap;
             }
-            
-            if (checkCompletion) {
-                checkAndCompleteQuest();
-            }
-        }
-    }
-    
-    /**
-     * Проверяет, завершены ли все objectives квеста, и если да - вызывает событие завершения
-     */
-    private void checkAndCompleteQuest() {
-        List<QuestProgress> allProgress = user.getAllProgressForQuest(quest);
-        
-        boolean allObjectivesCompleted = allProgress.stream()
-                .allMatch(QuestProgress::isCompleted);
-        
-        if (allObjectivesCompleted && !user.questIsComplete(quest)) {
-            UserCompleteQuestEvent event = new UserCompleteQuestEvent(user, quest, CompleteStatus.SUCCESS);
-            Bukkit.getPluginManager().callEvent(event);
-            
-            if (!event.isCancelled()) {
-                user.addCompletedQuest(quest);
-                user.removeQuestProgress(quest);
-                quest.rewards().executeCommands(user);
-            }
         }
     }
 
@@ -150,10 +126,10 @@ public class BaseQuestProgress implements QuestProgress {
         if (!objective.goals().contains(goal)) {
             return false;
         }
-        
+
         long currentProgress = getValue(goal);
         long requiredProgress = goal.targetValue();
-        
+
         return currentProgress < requiredProgress;
     }
 

@@ -8,14 +8,17 @@ import org.bukkit.inventory.ItemStack;
 public class SubmitItemGoal extends ItemStackGoal {
 
     private final AtomicInteger submittedCount;
+    private final boolean durabilityCheck;
     private final int minDurability;
     private final int maxDurability;
 
-    public SubmitItemGoal(ItemStack targetType, long targetValue, int minDurability, int maxDurability) {
+    public SubmitItemGoal(ItemStack targetType, long targetValue, int minDurability, int maxDurability,
+            boolean durabilityCheck) {
         super(targetType, targetValue);
         this.submittedCount = new AtomicInteger(0);
         this.minDurability = minDurability;
         this.maxDurability = maxDurability;
+        this.durabilityCheck = durabilityCheck;
     }
 
     public boolean submitItems(ItemStack[] items) {
@@ -30,10 +33,12 @@ public class SubmitItemGoal extends ItemStackGoal {
                 continue;
             }
 
-            int targetDurability = item.getDurability();
+            if (durabilityCheck) {
+                int targetDurability = item.getDurability();
 
-            if (targetDurability <= minDurability || targetDurability >= maxDurability) {
-                continue;
+                if (targetDurability <= minDurability || targetDurability >= maxDurability) {
+                    continue;
+                }
             }
 
             int currentSubmitted = submittedCount.get();

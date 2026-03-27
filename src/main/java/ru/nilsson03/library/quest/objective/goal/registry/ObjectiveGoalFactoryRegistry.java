@@ -8,7 +8,7 @@ import org.bukkit.Material;
 import org.bukkit.entity.EntityType;
 import org.bukkit.inventory.ItemStack;
 
-import ru.nilsson03.library.bukkit.util.ItemUtil;
+import ru.nilsson03.library.bukkit.util.ItemStackParser;
 import ru.nilsson03.library.quest.objective.goal.factory.ObjectiveGoalFactory;
 import ru.nilsson03.library.quest.objective.goal.factory.impl.EnchantWithLevelGoalFactory;
 import ru.nilsson03.library.quest.objective.goal.factory.impl.MovementTypeGoalFactory;
@@ -59,7 +59,7 @@ public class ObjectiveGoalFactoryRegistry {
         });
 
         registerFactory("itemStack", parameters -> {
-            ItemStack itemStack = ItemUtil.fromMap(parameters);
+            ItemStack itemStack = ItemStackParser.fromMap(parameters);
             long targetValue = Long.parseLong(parameters.get("value")
                     .toString());
             return new ItemStackGoal(itemStack, targetValue);
