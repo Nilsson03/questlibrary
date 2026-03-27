@@ -1,1 +1,28 @@
 writeLogs: true
+
+settings:
+  # Сообщение о получении прогресса
+  quest_progress: "actionbar:&8[&e!&8] &7Прогресс &e{quest} &a+{progress}&7/&e{required}"
+  # Форматы прогресса
+  progress_formatter_compact_progress_format: "&7○ {objective} &e{percentage}"
+  progress_formatter_compact_complete_format: "&a✓ {objective} &e100%"
+  progress_formatter_progress_format: "&7○ {goal} &e{current}&7/&e{required} &e{percentage}"
+  progress_formatter_complete_format: "&a✓ {goal}"
+
+  # Формат Value-целей
+  progress_formatter_goals_playtime: "Наиграно"
+  progress_formatter_goals_survival: "Пережито"
+  progress_formatter_goals_block_shield: "Заблокировано"
+  progress_formatter_goals_cure_villager: "Вылечено"
+  progress_formatter_goals_use_totem: "Использовано"
+  progress_formatter_goals_shear_sheep: "Подстрижено"
+  progress_formatter_goals_tnt_block_breaks: "Взорвано"
+  progress_formatter_goals_collect_from_composter: "Собрано"
+  progress_formatter_goals_fill_composter: "Заполнено"
+  progress_formatter_goals_resurrect_dragon: "Возрождено"
+  progress_formatter_goals_ignite_tnt: "Хуйзнает" # Поджигание динамита
+  progress_formatter_goals_use_grindstone_item: "Отточено"
+  progress_formatter_goals_death: "Сдохнуто"
+  progress_formatter_goals_move: "Пройдено"
+  progress_formatter_goals_exp_change: "Получено" # Про опыт
+  progress_formatter_goals_undefined: "Хуйзнает" # Если не найдено
