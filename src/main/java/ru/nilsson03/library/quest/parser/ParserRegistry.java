@@ -1,11 +1,12 @@
 package ru.nilsson03.library.quest.parser;
 
-import org.bukkit.configuration.ConfigurationSection;
-import ru.nilsson03.library.quest.parser.exception.ParserNotRegisterException;
-
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
+
+import org.bukkit.configuration.ConfigurationSection;
+
+import ru.nilsson03.library.quest.parser.exception.ParserNotRegisterException;
 
 public abstract class ParserRegistry<P extends Parser<O>, O> {
 
@@ -19,7 +20,8 @@ public abstract class ParserRegistry<P extends Parser<O>, O> {
      * @param registerType тип значения, которое необходимо зарегистрировать
      * @param parser       класс, который реализует интерфейс Parser
      * @throws IllegalArgumentException если аргументы равны null
-     * @throws IllegalStateException    если парсер для данного типа уже зарегистрирован
+     * @throws IllegalStateException    если парсер для данного типа уже
+     *                                  зарегистрирован
      */
     public void registerParser(String pluginName, String registerType, P parser) {
         Objects.requireNonNull(pluginName, "pluginName cannot be null");
@@ -32,7 +34,6 @@ public abstract class ParserRegistry<P extends Parser<O>, O> {
                     "Parser for register type " + namespacedKey + " is already registered!");
         }
 
-        
         parsers.put(namespacedKey, parser);
         parsers.putIfAbsent(registerType, parser);
     }
@@ -46,7 +47,7 @@ public abstract class ParserRegistry<P extends Parser<O>, O> {
      */
     public O parse(ConfigurationSection section) {
         String parserType = section.getString("type");
-        
+
         if (parserType != null) {
             P parser = parsers.get(parserType);
             if (parser == null) {
@@ -56,20 +57,20 @@ public abstract class ParserRegistry<P extends Parser<O>, O> {
         }
 
         String firstKey = section.getKeys(false)
-                                 .stream()
-                                 .findFirst()
-                                 .orElseThrow(() -> new IllegalArgumentException("No parser type found in section"));
-        
+                .stream()
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("No parser type found in section"));
+
         P parser = parsers.get(firstKey);
         if (parser != null) {
             return parser.parse(section.getConfigurationSection(firstKey));
         }
-        
+
         ConfigurationSection nestedSection = section.getConfigurationSection(firstKey);
         if (nestedSection != null && nestedSection.contains("type")) {
             return parse(nestedSection);
         }
-        
+
         throw new IllegalArgumentException("Unknown parser type: " + firstKey);
     }
 
@@ -88,7 +89,8 @@ public abstract class ParserRegistry<P extends Parser<O>, O> {
     }
 
     /**
-     * Получение парсера с учётом имени плагина. Сначала ищем по pluginName:registerType,
+     * Получение парсера с учётом имени плагина. Сначала ищем по
+     * pluginName:registerType,
      * если не найден — используем короткий ключ.
      */
     public P getParser(String pluginName, String registerType) {
@@ -114,6 +116,6 @@ public abstract class ParserRegistry<P extends Parser<O>, O> {
     }
 
     public abstract void onRegistryInit();
-    
+
     public abstract void onRegistryAfterInit();
 }

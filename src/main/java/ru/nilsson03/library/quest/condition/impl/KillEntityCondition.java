@@ -1,20 +1,27 @@
 package ru.nilsson03.library.quest.condition.impl;
 
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
+
 import ru.nilsson03.library.quest.condition.QuestCondition;
 import ru.nilsson03.library.quest.user.data.QuestUserData;
-
-import java.util.Set;
 
 public class KillEntityCondition implements QuestCondition {
 
     private final Set<String> requiredWeapons;
     private final Set<String> requiredArmor;
-    private final Set<String> requiredEffects;
+    private final Map<PotionEffectType, Integer> requiredEffects;
     private final Double minDistance;
     private final Double maxDistance;
     private final boolean requireNoAggro;
@@ -22,7 +29,7 @@ public class KillEntityCondition implements QuestCondition {
     public KillEntityCondition(
             Set<String> requiredWeapons,
             Set<String> requiredArmor,
-            Set<String> requiredEffects,
+            Map<PotionEffectType, Integer> requiredEffects,
             Double minDistance,
             Double maxDistance,
             boolean requireNoAggro) {
@@ -48,28 +55,30 @@ public class KillEntityCondition implements QuestCondition {
         }
 
         if (requiredArmor != null && !requiredArmor.isEmpty()) {
-            boolean hasRequiredArmor = false;
-            for (ItemStack armor : killer.getInventory().getArmorContents()) {
-                if (armor != null && requiredArmor.contains(armor.getType().name())) {
-                    hasRequiredArmor = true;
-                    break;
-                }
-            }
-            if (!hasRequiredArmor) {
+            List<String> equippedArmor = Arrays.stream(killer.getInventory().getArmorContents())
+                    .filter(Objects::nonNull)
+                    .map(armor -> armor.getType().name())
+                    .collect(Collectors.toList());
+
+            if (!equippedArmor.containsAll(requiredArmor)) {
                 return false;
             }
         }
 
         if (requiredEffects != null && !requiredEffects.isEmpty()) {
-            boolean hasRequiredEffect = false;
-            for (PotionEffect effect : killer.getActivePotionEffects()) {
-                if (requiredEffects.contains(effect.getType().getName())) {
-                    hasRequiredEffect = true;
-                    break;
+            for (Map.Entry<PotionEffectType, Integer> entry : requiredEffects.entrySet()) {
+                PotionEffectType requiredType = entry.getKey();
+                int requiredLevel = entry.getValue();
+
+                PotionEffect currentEffect = killer.getPotionEffect(requiredType);
+
+                if (currentEffect == null) {
+                    return false;
                 }
-            }
-            if (!hasRequiredEffect) {
-                return false;
+
+                if (currentEffect.getAmplifier() < requiredLevel) {
+                    return false;
+                }
             }
         }
 
