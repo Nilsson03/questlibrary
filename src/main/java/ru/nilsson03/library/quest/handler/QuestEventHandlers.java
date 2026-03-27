@@ -254,9 +254,14 @@ public class QuestEventHandlers {
                         if (event.getCaught() instanceof Item item) {
                             ItemStack itemStack = item.getItemStack();
                             Material type = itemStack.getType();
-                            questUserData.incrementProgressQuestsWithObjectiveType(
-                                    objectiveRegistry.getObjectiveType("CATCH_FISH"),
-                                    type, itemStack.getAmount());
+                            if (type == Material.COD ||
+                                    type == Material.SALMON ||
+                                    type == Material.TROPICAL_FISH ||
+                                    type == Material.PUFFERFISH) {
+                                questUserData.incrementProgressQuestsWithValueGoals(
+                                        objectiveRegistry.getObjectiveType("CATCH_FISH"),
+                                        itemStack.getAmount());
+                            }
                         }
                     }
                 });
@@ -336,7 +341,7 @@ public class QuestEventHandlers {
                         ItemStack item = event.getPlayer().getInventory().getItemInMainHand();
                         if (item != null && item.getType() != Material.AIR) {
                             questUserData.incrementProgressQuestsWithValueGoals(
-                                    objectiveRegistry.getObjectiveType("USE_COMPOSTER"), 1);
+                                    objectiveRegistry.getObjectiveType("FILL_COMPOSTER"), 1);
                         }
                     }
                 });
@@ -378,7 +383,7 @@ public class QuestEventHandlers {
                         int level = levelled.getLevel();
                         if (level == 8) {
                             questUserData.incrementProgressQuestsWithObjectiveType(
-                                    objectiveRegistry.getObjectiveType("COMPOST_FULL"), level, 1);
+                                    objectiveRegistry.getObjectiveType("COLLECT_FROM_COMPOSTER"), level, 1);
                         }
                     }
                 });
@@ -467,24 +472,6 @@ public class QuestEventHandlers {
                     }
                 });
 
-        QuestEventHandler<PlayerInteractEvent> collectFromComposterHandler = new UniversalQuestEventHandler<>(
-                questUsersStorage, (event, questUserData) -> {
-                    if (event.getHand() == null || event.getHand() != EquipmentSlot.HAND)
-                        return;
-                    if (event.getAction() != Action.RIGHT_CLICK_BLOCK)
-                        return;
-
-                    Block block = event.getClickedBlock();
-                    if (block != null && block.getType() == Material.COMPOSTER) {
-                        Levelled levelled = (Levelled) block.getBlockData();
-                        int level = levelled.getLevel();
-                        if (level == 8) {
-                            questUserData.incrementProgressQuestsWithValueGoals(
-                                    objectiveRegistry.getObjectiveType("COLLECT_FROM_COMPOSTER"), 1);
-                        }
-                    }
-                });
-
         QuestEventHandler<InventoryClickEvent> useGrindstoneHandler = new UniversalQuestEventHandler<>(
                 questUsersStorage, (event, questUserData) -> {
                     if (event.getInventory().getType() == InventoryType.GRINDSTONE) {
@@ -526,15 +513,13 @@ public class QuestEventHandlers {
                 put("CURE_VILLAGER", cureVillagerHandler);
                 put("USE_TOTEM", useTotemHandler);
                 put("SHEAR_SHEEP", shearSheepHandler);
-                put("USE_COMPOSTER", composterHandler);
+                put("FILL_COMPOSTER", composterHandler);
                 put("ENCHANT_WITH_LEVEL", enchantWithLevelHandler);
                 put("ANVIL_ENCHANT_HANDLER", anvilEnchantHandler);
-                put("COMPOST_FULL", compostFullHandler);
                 put("RESURRECT_DRAGON", dragonResurrectHandler);
                 put("IGNITE_TNT", igniteTntHandler);
                 put("TNT_BREAK_BLOCKS", tntBreakBlocksHandler);
-                put("FILL_COMPOSTER", fillComposterHandler);
-                put("COLLECT_FROM_COMPOSTER", collectFromComposterHandler);
+                put("COLLECT_FROM_COMPOSTER", fillComposterHandler);
                 put("USE_GRINDSTONE_ITEM", useGrindstoneHandler);
                 put("USE_FURNACE", useFurnaceHandler);
                 put("BLOCK_DAMAGE_SHIELD", blockSchieldEventHandler);
