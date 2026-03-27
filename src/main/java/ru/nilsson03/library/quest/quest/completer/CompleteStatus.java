@@ -4,4 +4,6 @@ public enum CompleteStatus {
     SUCCESS,
     CONDITIONS_NOT_ACHIEVE,
     ALREADY_COMPLETE,
+    GOAL_NOT_ACHIEVE,
+    CANCELLED
 }

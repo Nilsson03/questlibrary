@@ -5,6 +5,7 @@ import ru.nilsson03.library.quest.parser.Parser;
 import ru.nilsson03.library.quest.reward.QuestReward;
 import ru.nilsson03.library.quest.reward.impl.SimpleQuestReward;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -20,13 +21,21 @@ public class BaseRewardParser implements Parser<QuestReward> {
             uniqueIdentificationKey = UUID.fromString(uuidString);
         }
 
-        List<String> commands = section.getStringList("commands");
-        if (commands.isEmpty()) {
-            throw new IllegalArgumentException("commands cannot be empty");
+        List<String> commands = new ArrayList<>();
+        if (section.contains("commands")) {
+            commands = section.getStringList("commands");
         }
 
-        List<String> message = section.getStringList("message");
+        List<String> description = new ArrayList<>();
+        if (section.contains("description")) {
+            description = section.getStringList("description");
+        }
 
-        return new SimpleQuestReward(uniqueIdentificationKey, commands, message);
+        List<String> message = new ArrayList<>();
+        if (section.contains("message")) {
+            message = section.getStringList("message");
+        }
+
+        return new SimpleQuestReward(uniqueIdentificationKey, commands, message, description);
     }
 }

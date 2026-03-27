@@ -9,7 +9,7 @@ public interface QuestReward {
 
     List<String> messageInfo();
     List<String> rewardCommands();
-
+    List<String> getDescription();
     UUID uniqueIdentificationKey();
 
     void executeCommands(QuestUserData questUserData);

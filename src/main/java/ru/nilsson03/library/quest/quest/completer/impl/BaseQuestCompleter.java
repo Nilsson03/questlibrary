@@ -1,32 +1,19 @@
 package ru.nilsson03.library.quest.quest.completer.impl;
 
-import ru.nilsson03.library.quest.condition.QuestCondition;
-import ru.nilsson03.library.quest.quest.completer.CompleteStatus;
+import java.util.function.Consumer;
+
 import ru.nilsson03.library.quest.quest.completer.QuestCompleter;
 import ru.nilsson03.library.quest.quest.simple.BaseQuest;
 import ru.nilsson03.library.quest.user.data.QuestUserData;
 
-import java.util.Set;
-import java.util.function.Consumer;
-
 public class BaseQuestCompleter implements QuestCompleter {
 
     @Override
-    public CompleteStatus completeQuest(QuestUserData user, BaseQuest quest, Consumer<QuestUserData> questUserDataConsumer) {
-        Set<QuestCondition> completeConditions = quest.conditions();
-
-        for (QuestCondition questCondition : completeConditions) {
-            if (!questCondition.isMet(user)) {
-                return CompleteStatus.CONDITIONS_NOT_ACHIEVE;
-            }
-        }
-
+    public void completeQuest(QuestUserData user, BaseQuest quest, Consumer<QuestUserData> questUserDataConsumer) {
         giveReward(user, quest);
 
         if (questUserDataConsumer != null) {
             questUserDataConsumer.accept(user);
         }
-
-        return CompleteStatus.SUCCESS;
     }
 }

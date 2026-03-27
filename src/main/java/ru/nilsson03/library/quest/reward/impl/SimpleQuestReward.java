@@ -23,11 +23,17 @@ public class SimpleQuestReward implements QuestReward {
     private final UUID uniqueIdentificationKey; // Должно быть уникальным
     private final List<String> commands;
     private final List<String> message;
+    private final List<String> description;
 
-    public SimpleQuestReward(final UUID uniqueIdentificationKey, final List<String> commands, List<String> message) {
+    public SimpleQuestReward(final UUID uniqueIdentificationKey, final List<String> commands, List<String> message, List<String> description) {
         this.uniqueIdentificationKey = uniqueIdentificationKey;
         this.commands = commands;
         this.message = message;
+        this.description = description;
+    }
+
+    public List<String> getDescription() {
+        return description;
     }
 
     public List<String> rewardCommands() {

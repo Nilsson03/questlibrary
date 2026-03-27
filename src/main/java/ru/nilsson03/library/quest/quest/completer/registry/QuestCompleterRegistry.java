@@ -11,6 +11,7 @@ import java.util.Map;
 public class QuestCompleterRegistry {
     
     private final Map<Class<? extends BaseQuest>, QuestCompleter> completers = new HashMap<>();
+    private final QuestCompleter defaultCompleter = new BaseQuestCompleter();
 
     public QuestCompleterRegistry(QuestUsersStorage questUsersStorage) {
     }
@@ -21,6 +22,10 @@ public class QuestCompleterRegistry {
 
     public QuestCompleter getCompleter(BaseQuest quest) {
         return completers.get(quest.getClass());
+    }
+
+    public QuestCompleter getDefaultCompleter() {
+        return defaultCompleter;
     }
 
     public void onRegisterInit() {
