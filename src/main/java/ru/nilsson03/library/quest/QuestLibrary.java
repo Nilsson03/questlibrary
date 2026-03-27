@@ -1,29 +1,31 @@
 package ru.nilsson03.library.quest;
 
+import lombok.Getter;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
+
 import ru.nilsson03.library.NPlugin;
+import ru.nilsson03.library.bukkit.file.BukkitDirectory;
 import ru.nilsson03.library.bukkit.file.FileHelper;
+import ru.nilsson03.library.bukkit.file.configuration.BukkitConfig;
 import ru.nilsson03.library.bukkit.util.log.ConsoleLogger;
+import ru.nilsson03.library.quest.core.listener.QuestProgressListener;
 import ru.nilsson03.library.quest.exception.QuestStorageDuplicateException;
 import ru.nilsson03.library.quest.exception.QuestStorageNotLoadedException;
 import ru.nilsson03.library.quest.storage.QuestStorage;
 import ru.nilsson03.library.quest.storage.QuestStorageManager;
 
-import java.io.File;
-import java.nio.file.Paths;
-
 public class QuestLibrary extends NPlugin {
 
     private static QuestLibrary instance;
 
+    @Getter
+    private BukkitConfig configuration;
     private QuestStorageManager questStorageManager;
 
     @Override
     public void enable() {
         instance = this;
-
-        createDataFolders();
 
         try {
             questStorageManager = new QuestStorageManager();
@@ -33,6 +35,11 @@ public class QuestLibrary extends NPlugin {
             Bukkit.getPluginManager()
                     .disablePlugin(this);
         }
+
+        FileHelper.loadConfigurations(this, "config.yml");
+        BukkitDirectory rootDirectory = getDirectory("/");
+        configuration = rootDirectory.getBukkitConfig("config.yml");
+        getServer().getPluginManager().registerEvents(new QuestProgressListener(), this);
     }
 
     public QuestStorage getQuestStorage(Plugin plugin) {
@@ -50,31 +57,6 @@ public class QuestLibrary extends NPlugin {
         } catch (QuestStorageDuplicateException exception) {
             throw new QuestStorageDuplicateException(
                     "Error on loading QuestService. Quest storage for plugin " + plugin.getName() + " already loaded.");
-        }
-    }
-
-    private void createDataFolders() {
-        File dataFolder = getDataFolder();
-        createFolder(dataFolder, "Plugin data");
-
-        createFolder(Paths.get(dataFolder.getPath(), "users")
-                .toFile(), "Users data");
-        createFolder(Paths.get(dataFolder.getPath(), "quests")
-                .toFile(), "Quests data");
-        createFolder(Paths.get(dataFolder.getPath(), "examples")
-                .toFile(), "Example quests");
-    }
-
-    private void createFolder(File folder, String folderName) {
-        if (!folder.exists()) {
-            getLogger().info(folderName + " folder does not exist. Creating...");
-            boolean created = folder.mkdirs();
-
-            if (!created) {
-                getLogger().severe("Error on creating " + folderName.toLowerCase() + " folder.");
-            } else {
-                getLogger().info(folderName + " folder created.");
-            }
         }
     }
 

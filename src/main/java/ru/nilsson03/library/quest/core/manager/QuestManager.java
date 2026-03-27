@@ -2,28 +2,28 @@ package ru.nilsson03.library.quest.core.manager;
 
 import java.util.function.Consumer;
 
-import lombok.Getter;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.server.PluginDisableEvent;
+
+import lombok.Getter;
 import ru.nilsson03.library.NPlugin;
 import ru.nilsson03.library.quest.core.service.QuestLifecycleService;
 import ru.nilsson03.library.quest.core.service.QuestProgressService;
 import ru.nilsson03.library.quest.handler.QuestEventManager;
-import ru.nilsson03.library.quest.objective.registry.ObjectiveType;
-import ru.nilsson03.library.quest.quest.simple.BaseQuest;
-import ru.nilsson03.library.quest.storage.QuestStorage;
 import ru.nilsson03.library.quest.objective.factory.registry.QuestProgressFactoryRegistry;
 import ru.nilsson03.library.quest.objective.registry.ObjectiveRegistry;
+import ru.nilsson03.library.quest.objective.registry.ObjectiveType;
 import ru.nilsson03.library.quest.quest.completer.CompleteStatus;
 import ru.nilsson03.library.quest.quest.completer.registry.QuestCompleterRegistry;
+import ru.nilsson03.library.quest.quest.simple.BaseQuest;
+import ru.nilsson03.library.quest.tracker.MovementTracker;
 import ru.nilsson03.library.quest.tracker.PlaytimeObjectiveTracker;
 import ru.nilsson03.library.quest.tracker.SurvivalConditionTracker;
 import ru.nilsson03.library.quest.user.data.QuestUserData;
 import ru.nilsson03.library.quest.user.storage.QuestUsersStorage;
-import ru.nilsson03.library.quest.tracker.MovementTracker;
 
 @Getter
 public class QuestManager implements Listener {
@@ -33,6 +33,7 @@ public class QuestManager implements Listener {
     private final QuestLifecycleService questLifecycleService;
     private final QuestEventManager questEventManager;
     private final QuestProgressService questProgressService;
+    private final QuestCompleterRegistry questCompleterRegistry;
 
     private final MovementTracker movementTracker;
     private final PlaytimeObjectiveTracker playtimeObjectiveTracker;
@@ -40,7 +41,8 @@ public class QuestManager implements Listener {
 
     /**
      * Конструктор класса
-     * Во время инициализации класса инициализируется менеджер, который так же принимает в качестве параметров javaPlugin, а так же
+     * Во время инициализации класса инициализируется менеджер, который так же
+     * принимает в качестве параметров javaPlugin, а так же
      * хранилище игроков
      *
      * @param plugin            плагин, к которому должен относится данный менеджер
@@ -53,12 +55,12 @@ public class QuestManager implements Listener {
         this.questEventManager = new QuestEventManager(plugin, questUsersStorage, objectiveRegistry);
 
         QuestProgressFactoryRegistry factoryRegistry = new QuestProgressFactoryRegistry();
-        QuestCompleterRegistry questCompleterRegistry = new QuestCompleterRegistry(questUsersStorage);
+        questCompleterRegistry = new QuestCompleterRegistry(questUsersStorage);
         questCompleterRegistry.onRegisterInit();
 
         this.questProgressService = new QuestProgressService(factoryRegistry);
-        this.questLifecycleService = new QuestLifecycleService(questProgressService, questCompleterRegistry);
-        
+        this.questLifecycleService = new QuestLifecycleService(plugin, questProgressService, questCompleterRegistry);
+
         this.movementTracker = new MovementTracker(plugin, questUsersStorage, objectiveRegistry);
         ObjectiveType survivalType = objectiveRegistry.getObjectiveType("SURVIVAL_CONDITION");
         survivalConditionTracker = new SurvivalConditionTracker(plugin, questUsersStorage, survivalType);
@@ -90,9 +92,11 @@ public class QuestManager implements Listener {
      *
      * @param user                  игрок
      * @param quest                 квест
-     * @param questUserDataConsumer дополнительные действия, которые могут быть совершены с игроком
+     * @param questUserDataConsumer дополнительные действия, которые могут быть
+     *                              совершены с игроком
      */
-    public CompleteStatus completeQuest(QuestUserData user, BaseQuest quest, Consumer<QuestUserData> questUserDataConsumer) {
+    public CompleteStatus completeQuest(QuestUserData user, BaseQuest quest,
+            Consumer<QuestUserData> questUserDataConsumer) {
         return questLifecycleService.completeQuest(user, quest, questUserDataConsumer);
     }
 
@@ -101,7 +105,8 @@ public class QuestManager implements Listener {
      *
      * @param user                  игрок, который должен начать выполнять
      * @param quest                 квест, который будет выполнять игрок
-     * @param questUserDataConsumer дополнительные действия, которые могут быть связаны с игроком
+     * @param questUserDataConsumer дополнительные действия, которые могут быть
+     *                              связаны с игроком
      */
     public void startQuest(QuestUserData user, BaseQuest quest, Consumer<QuestUserData> questUserDataConsumer) {
         questLifecycleService.startQuest(user, quest, questUserDataConsumer);

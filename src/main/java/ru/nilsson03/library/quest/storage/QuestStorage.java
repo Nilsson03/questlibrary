@@ -1,23 +1,26 @@
 package ru.nilsson03.library.quest.storage;
 
-import com.google.common.base.Preconditions;
-import org.bukkit.plugin.Plugin;
-import ru.nilsson03.library.bukkit.file.FileHelper;
-import ru.nilsson03.library.bukkit.util.Namespace;
-import ru.nilsson03.library.bukkit.util.log.ConsoleLogger;
-import ru.nilsson03.library.quest.quest.simple.BaseQuest;
-import ru.nilsson03.library.quest.storage.loader.QuestLoader;
-
 import java.io.File;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+import org.bukkit.plugin.Plugin;
+
+import com.google.common.base.Preconditions;
+
+import ru.nilsson03.library.bukkit.file.FileHelper;
+import ru.nilsson03.library.bukkit.util.Namespace;
+import ru.nilsson03.library.bukkit.util.log.ConsoleLogger;
+import ru.nilsson03.library.quest.quest.simple.BaseQuest;
+import ru.nilsson03.library.quest.storage.loader.QuestLoader;
+
 public class QuestStorage {
 
     private final Plugin plugin;
     private final List<BaseQuest> quests;
+    private final QuestLoader questLoader;
 
     /**
      * Конструктор для создания объекта QuestStorage.
@@ -29,12 +32,14 @@ public class QuestStorage {
     public QuestStorage(final Plugin plugin, final QuestLoader questLoader) {
         this.plugin = Objects.requireNonNull(plugin, "Plugin cannot be null");
         Preconditions.checkNotNull(questLoader, "Quest loader class cannot be null");
-
+        this.questLoader = questLoader;
         this.quests = new ArrayList<>();
+    }
 
+    public void loadQuests() {
         String questsFolderPath = Paths.get(plugin.getDataFolder()
-                                                  .getPath(), "quests")
-                                       .toString();
+                .getPath(), "quests")
+                .toString();
         ConsoleLogger.info(plugin.getName(), "Quests folder Path %s", questsFolderPath);
 
         try {
@@ -43,13 +48,15 @@ public class QuestStorage {
             ConsoleLogger.info(plugin.getName(), "Loaded %s quests", quests.size());
         } catch (Exception exception) {
             plugin.getLogger()
-                  .severe("Failed to load quests from " + questsFolderPath);
+                    .severe("Failed to load quests from " + questsFolderPath);
         }
     }
 
     /**
-     * Удаляет квест по уникальному ключу. Если найдено более одного квеста с таким ключом,
-     * удаляет все такие квесты и выводит предупреждение в лог. Если квест не найден,
+     * Удаляет квест по уникальному ключу. Если найдено более одного квеста с таким
+     * ключом,
+     * удаляет все такие квесты и выводит предупреждение в лог. Если квест не
+     * найден,
      * выбрасывает исключение.
      *
      * @param key Уникальный ключ квеста.
@@ -59,9 +66,9 @@ public class QuestStorage {
         Preconditions.checkArgument(key != null, "Quest key cannot be null");
 
         List<BaseQuest> matchingQuests = quests.stream()
-                                           .filter(Objects::nonNull)
-                                           .filter(quest -> key.equals(quest.questUniqueKey()))
-                                           .toList();
+                .filter(Objects::nonNull)
+                .filter(quest -> key.equals(quest.questUniqueKey()))
+                .toList();
 
         if (matchingQuests.isEmpty()) {
             throw new IllegalArgumentException("No quests found with key: " + key + " in plugin: " + plugin.getName());
@@ -69,15 +76,17 @@ public class QuestStorage {
 
         if (matchingQuests.size() > 1) {
             plugin.getLogger()
-                  .warning(
-                          "Found more than one quest with key: " + key + " in plugin: " + plugin.getName() + ". Removed all quests with identify keys");
+                    .warning(
+                            "Found more than one quest with key: " + key + " in plugin: " + plugin.getName()
+                                    + ". Removed all quests with identify keys");
         }
 
         quests.removeAll(matchingQuests);
     }
 
     /**
-     * Возвращает квест по уникальному ключу. Если найдено более одного квеста с таким ключом,
+     * Возвращает квест по уникальному ключу. Если найдено более одного квеста с
+     * таким ключом,
      * выводит предупреждение в лог и возвращает первый найденный квест.
      *
      * @param key Уникальный ключ квеста.
@@ -85,22 +94,24 @@ public class QuestStorage {
      */
     protected BaseQuest getQuestByUniqueKey(final Namespace key) {
         List<BaseQuest> matchingQuests = quests.stream()
-                                           .filter(quest -> key.equals(quest.questUniqueKey()))
-                                           .toList();
+                .filter(quest -> key.equals(quest.questUniqueKey()))
+                .toList();
 
         if (matchingQuests.size() > 1) {
             plugin.getLogger()
-                  .warning(
-                          "Found more than one quest with key: " + key + " in plugin: " + plugin.getName() + ". Selected first found.");
+                    .warning(
+                            "Found more than one quest with key: " + key + " in plugin: " + plugin.getName()
+                                    + ". Selected first found.");
         }
 
         return matchingQuests.stream()
-                             .findFirst()
-                             .orElse(null);
+                .findFirst()
+                .orElse(null);
     }
 
     /**
-     * Возвращает квест по уникальному ключу. Если квест не найден, выбрасывает исключение.
+     * Возвращает квест по уникальному ключу. Если квест не найден, выбрасывает
+     * исключение.
      *
      * @param key Уникальный ключ квеста.
      * @return Найденный квест.
@@ -110,7 +121,7 @@ public class QuestStorage {
         Namespace questNamespace = Namespace.of(plugin.getName(), key);
         BaseQuest quest = getQuestByUniqueKey(questNamespace);
         Preconditions.checkArgument(quest != null,
-                                    "No quest found with key: " + key + " in plugin: " + plugin.getName());
+                "No quest found with key: " + key + " in plugin: " + plugin.getName());
         return quest;
     }
 

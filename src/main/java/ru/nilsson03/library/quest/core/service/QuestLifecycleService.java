@@ -1,10 +1,13 @@
 package ru.nilsson03.library.quest.core.service;
 
+import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
 
 import org.bukkit.Bukkit;
 
+import ru.nilsson03.library.NPlugin;
+import ru.nilsson03.library.quest.condition.QuestCondition.ConditionType;
 import ru.nilsson03.library.quest.core.event.UserCompleteQuestEvent;
 import ru.nilsson03.library.quest.core.event.UserQuestStartEvent;
 import ru.nilsson03.library.quest.objective.progress.QuestProgress;
@@ -16,10 +19,13 @@ import ru.nilsson03.library.quest.user.data.QuestUserData;
 
 public class QuestLifecycleService {
 
+    private final NPlugin plugin;
     private final QuestProgressService questProgressService;
     private final QuestCompleterRegistry questCompleterRegistry;
 
-    public QuestLifecycleService(QuestProgressService questProgressService, QuestCompleterRegistry questCompleterRegistry) {
+    public QuestLifecycleService(NPlugin plugin, QuestProgressService questProgressService,
+            QuestCompleterRegistry questCompleterRegistry) {
+        this.plugin = plugin;
         this.questProgressService = questProgressService;
         this.questCompleterRegistry = questCompleterRegistry;
     }
@@ -28,14 +34,23 @@ public class QuestLifecycleService {
         if (user.questIsComplete(quest)) {
             return;
         }
-        
+
         if (user.questIsStarted(quest)) {
             return;
         }
 
-        UserQuestStartEvent event = new UserQuestStartEvent(user, quest);
+        boolean unmetPrerequisite = quest.conditions()
+                .stream()
+                .filter(condition -> condition.getType() == ConditionType.START)
+                .allMatch(condition -> condition.isMet(user));
+
+        if (!unmetPrerequisite) {
+            return;
+        }
+
+        UserQuestStartEvent event = new UserQuestStartEvent(plugin, user, quest);
         Bukkit.getPluginManager()
-              .callEvent(event);
+                .callEvent(event);
         if (event.isCancelled()) {
             return;
         }
@@ -52,32 +67,39 @@ public class QuestLifecycleService {
         this.startQuest(user, quest, null);
     }
 
-    public CompleteStatus completeQuest(QuestUserData user, BaseQuest quest, Consumer<QuestUserData> questUserDataConsumer) {
+    public CompleteStatus completeQuest(QuestUserData user, BaseQuest quest,
+            Consumer<QuestUserData> questUserDataConsumer) {
         if (user.questIsComplete(quest)) {
             return CompleteStatus.ALREADY_COMPLETE;
         }
 
+        List<QuestProgress> allProgress = user.getAllProgressForQuest(quest);
+
+        boolean allObjectivesCompleted = allProgress.stream()
+                .allMatch(QuestProgress::isCompleted);
+
+        if (!allObjectivesCompleted) {
+            return CompleteStatus.GOAL_NOT_ACHIEVE;
+        }
+
+        UserCompleteQuestEvent event = new UserCompleteQuestEvent(plugin, user, quest, CompleteStatus.SUCCESS);
+        Bukkit.getPluginManager().callEvent(event);
+
+        if (event.isCancelled()) {
+            return CompleteStatus.CANCELLED;
+        }
+
         QuestCompleter completer = questCompleterRegistry.getCompleter(quest);
         if (completer == null) {
-            throw new IllegalArgumentException("No completer found for quest type: " + quest.getClass()
-                                                                                            .getSimpleName());
+            completer = questCompleterRegistry.getDefaultCompleter();
         }
 
-        CompleteStatus status = completer.completeQuest(user, quest, questUserDataConsumer);
-        
-        if (status == CompleteStatus.SUCCESS) {
-            UserCompleteQuestEvent event = new UserCompleteQuestEvent(user, quest, status);
-            Bukkit.getPluginManager()
-                  .callEvent(event);
-            
-            if (event.isCancelled()) {
-                return CompleteStatus.CONDITIONS_NOT_ACHIEVE;
-            }
-            
-            user.addCompletedQuest(quest);
-        }
+        user.addCompletedQuest(quest);
+        user.removeQuestProgress(quest);
 
-        return status;
+        completer.completeQuest(user, quest, questUserDataConsumer);
+
+        return CompleteStatus.SUCCESS;
     }
 
     public CompleteStatus completeQuest(QuestUserData user, BaseQuest quest) {
