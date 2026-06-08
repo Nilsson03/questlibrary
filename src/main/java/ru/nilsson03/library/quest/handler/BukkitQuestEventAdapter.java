@@ -30,7 +30,12 @@ public class BukkitQuestEventAdapter {
                 List<QuestEventHandler<?>> handlers = questEventManager.getHandlers().get(eventClass);
                 if (handlers != null) {
                     for (QuestEventHandler<?> handler : handlers) {
-                        handleEvent(event, handler);
+                        try {
+                            handleEvent(event, handler);
+                        } catch (Exception e) {
+                            plugin.getLogger().severe(
+                                "Error handling quest event " + event.getEventName() + ": " + e.getMessage());
+                        }
                     }
                 }
             };

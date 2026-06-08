@@ -295,7 +295,8 @@ public class QuestProgressFormatter {
                 return "Зачаровать " + capitalizeWords(enchantName.replace("_", " ")) + levelInfo;
             }
         } catch (Exception e) {
-            // Fallback to original string
+            java.util.logging.Logger.getLogger("questlibrary")
+                .warning("Failed to format enchant goal name '" + goalStr + "': " + e.getMessage());
         }
         return goalStr;
     }

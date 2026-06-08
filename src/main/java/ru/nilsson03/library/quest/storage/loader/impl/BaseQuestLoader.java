@@ -49,8 +49,7 @@ public class BaseQuestLoader implements QuestLoader {
             FileConfiguration config = YamlConfiguration.loadConfiguration(file);
             return parseQuest(config, file);
         } catch (Exception e) {
-            questService.getPlugin().getLogger().severe("Failed to load quest from file: " + file.getName());
-            e.printStackTrace();
+            questService.getPlugin().getLogger().severe("Failed to load quest from file '" + file.getName() + "': " + e.getMessage());
             return null;
         }
     }
@@ -101,7 +100,8 @@ public class BaseQuestLoader implements QuestLoader {
                 conditions.add(condition);
             }
         } catch (Exception e) {
-            questService.getPlugin().getLogger().warning("Failed to parse conditions: " + e.getMessage());
+            questService.getPlugin().getLogger().severe("Failed to parse conditions: " + e.getMessage());
+            throw new RuntimeException("Failed to parse quest conditions", e);
         }
 
         return conditions;
@@ -128,8 +128,8 @@ public class BaseQuestLoader implements QuestLoader {
                     objectives.add(objective);
                 }
             } catch (Exception e) {
-                questService.getPlugin().getLogger().severe("Failed to parse objective '" + objectiveKey + "': " + e.getMessage());
-                e.printStackTrace();
+                questService.getPlugin().getLogger().severe(
+                    "Failed to parse objective '" + objectiveKey + "': " + e.getMessage());
             }
         }
 

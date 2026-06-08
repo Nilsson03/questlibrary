@@ -71,7 +71,7 @@ public class SqlUserPersistent implements UserDataPersistent {
             ConsoleLogger.info(plugin, "SQL tables for quest user data initialized successfully.");
         } catch (SQLException e) {
             ConsoleLogger.error(plugin, "Failed to initialize SQL tables: %s", e.getMessage());
-            e.printStackTrace();
+            throw new RuntimeException("Failed to initialize SQL tables for quest user data", e);
         }
     }
 
@@ -174,8 +174,7 @@ public class SqlUserPersistent implements UserDataPersistent {
                 }
             } catch (SQLException e) {
                 ConsoleLogger.error(plugin, "Failed to save user data for UUID %s: %s", userData.uuid(), e.getMessage());
-                e.printStackTrace();
-                throw new RuntimeException(e);
+                throw new RuntimeException("Failed to save user data for UUID " + userData.uuid(), e);
             }
         });
     }
@@ -319,11 +318,7 @@ public class SqlUserPersistent implements UserDataPersistent {
                 return userData;
             } catch (SQLException e) {
                 ConsoleLogger.error(plugin, "Failed to load user data for UUID %s: %s", uuid, e.getMessage());
-                e.printStackTrace();
-                return new BaseQuestUserData(uuid,
-                        new ArrayList<>(),
-                        new ArrayList<>(),
-                        new QuestUserReceiptsRewardsData());
+                throw new RuntimeException("Failed to load user data for UUID " + uuid, e);
             }
         });
     }
@@ -466,8 +461,7 @@ public class SqlUserPersistent implements UserDataPersistent {
                 }
             } catch (SQLException e) {
                 ConsoleLogger.error(plugin, "Failed to delete user data for UUID %s: %s", uuid, e.getMessage());
-                e.printStackTrace();
-                throw new RuntimeException(e);
+                throw new RuntimeException("Failed to delete user data for UUID " + uuid, e);
             }
         });
     }
@@ -491,7 +485,8 @@ public class SqlUserPersistent implements UserDataPersistent {
                     }
                 }
             } catch (SQLException e) {
-                ConsoleLogger.error(plugin, "Failed to get quest completion time: %s", e.getMessage());
+                ConsoleLogger.error(plugin, "Failed to get quest completion time for UUID %s, quest %s: %s", uuid, questKey, e.getMessage());
+                throw new RuntimeException("Failed to get quest completion time", e);
             }
             return 0L;
         });

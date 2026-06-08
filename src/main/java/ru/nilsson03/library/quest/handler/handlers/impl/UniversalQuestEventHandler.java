@@ -115,6 +115,8 @@ public class UniversalQuestEventHandler<T extends Event> implements QuestEventHa
                         return org.bukkit.Bukkit.getPlayer(playerUuid);
                     }
                 } catch (Exception e) {
+                    java.util.logging.Logger.getLogger("questlibrary")
+                        .warning("Failed to resolve player UUID from entity transform data: " + e.getMessage());
                 }
             }
         }

@@ -123,7 +123,9 @@ public class QuestEventHandlers {
                                     objectiveRegistry.getObjectiveType("TRANSFORM_ENTITY"),
                                     transformedType, 1);
                         }
-                    } catch (IllegalArgumentException ignored) {
+                    } catch (IllegalArgumentException e) {
+                        eventManager.getPlugin().getLogger().warning(
+                            "Invalid player UUID in entity transform data: " + playerUuidString + " - " + e.getMessage());
                     }
                 }
             }
@@ -448,7 +450,9 @@ public class QuestEventHandlers {
                                 questUserData.incrementProgressQuestsWithValueGoals(
                                         objectiveRegistry.getObjectiveType("TNT_BREAK_BLOCKS"), blockCount);
                             }
-                        } catch (IllegalArgumentException ignored) {
+                        } catch (IllegalArgumentException e) {
+                            eventManager.getPlugin().getLogger().warning(
+                                "Invalid player UUID in TNT igniter data: " + playerUuidString + " - " + e.getMessage());
                         }
                     }
                 }

@@ -48,7 +48,8 @@ public class QuestStorage {
             ConsoleLogger.info(plugin.getName(), "Loaded %s quests", quests.size());
         } catch (Exception exception) {
             plugin.getLogger()
-                    .severe("Failed to load quests from " + questsFolderPath);
+                    .severe("Failed to load quests from " + questsFolderPath + ": " + exception.getMessage());
+            throw new RuntimeException("Failed to load quests from " + questsFolderPath, exception);
         }
     }
 
