@@ -81,7 +81,7 @@ public class ObjectiveParser implements Parser<Objective> {
 
             return new PotionEffect(type, duration, amplifier);
         } catch (Exception e) {
-            System.err.println("Failed to parse potion effect: " + e.getMessage());
+            ConsoleLogger.warn("questlibrary", "Failed to parse potion effect: %s", e.getMessage());
             return null;
         }
     }

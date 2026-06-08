@@ -14,8 +14,11 @@ import ru.nilsson03.library.quest.user.data.UserDataPersistent;
 import java.sql.*;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.regex.Pattern;
 
 public class SqlUserPersistent implements UserDataPersistent {
+
+    private static final Pattern SAFE_IDENTIFIER = Pattern.compile("^[a-zA-Z0-9_]+$");
 
     private final NPlugin plugin;
     private final QuestStorage questStorage;
@@ -30,13 +33,29 @@ public class SqlUserPersistent implements UserDataPersistent {
                              QuestStorage questStorage) {
         this.plugin = plugin;
         this.questStorage = questStorage;
-        this.QUEST_USERS_TABLE = plugin.getName() + "_quest_users";
-        this.QUEST_COMPLETED_TABLE = plugin.getName() + "_quest_completed";
-        this.QUEST_ACITVE_PROGRESS_TABLE = plugin.getName() + "_quest_active_progress";
-        this.QUEST_PROGRESS_GOALS_TABLE = plugin.getName() + "_quest_progress_goals";
-        this.QUEST_RECEIPTS_REWARDS_TABLE = plugin.getName() + "_quest_receipts_rewards";
+
+        String sanitizedName = sanitizeIdentifier(plugin.getName());
+        this.QUEST_USERS_TABLE = sanitizedName + "_quest_users";
+        this.QUEST_COMPLETED_TABLE = sanitizedName + "_quest_completed";
+        this.QUEST_ACITVE_PROGRESS_TABLE = sanitizedName + "_quest_active_progress";
+        this.QUEST_PROGRESS_GOALS_TABLE = sanitizedName + "_quest_progress_goals";
+        this.QUEST_RECEIPTS_REWARDS_TABLE = sanitizedName + "_quest_receipts_rewards";
         initializeTables();
         ConsoleLogger.info(plugin, "SQL user persistent initialized");
+    }
+
+    private static String sanitizeIdentifier(String name) {
+        if (name == null || name.isEmpty()) {
+            throw new IllegalArgumentException("SQL identifier name cannot be null or empty");
+        }
+        String sanitized = name.replaceAll("[^a-zA-Z0-9_]", "");
+        if (sanitized.isEmpty()) {
+            throw new IllegalArgumentException("Plugin name contains no valid SQL identifier characters: " + name);
+        }
+        if (!SAFE_IDENTIFIER.matcher(sanitized).matches()) {
+            throw new IllegalArgumentException("Sanitized name is not a safe SQL identifier: " + sanitized);
+        }
+        return sanitized;
     }
 
     private Connection getConnection() {
@@ -71,7 +90,6 @@ public class SqlUserPersistent implements UserDataPersistent {
             ConsoleLogger.info(plugin, "SQL tables for quest user data initialized successfully.");
         } catch (SQLException e) {
             ConsoleLogger.error(plugin, "Failed to initialize SQL tables: %s", e.getMessage());
-            e.printStackTrace();
         }
     }
 
@@ -174,7 +192,6 @@ public class SqlUserPersistent implements UserDataPersistent {
                 }
             } catch (SQLException e) {
                 ConsoleLogger.error(plugin, "Failed to save user data for UUID %s: %s", userData.uuid(), e.getMessage());
-                e.printStackTrace();
                 throw new RuntimeException(e);
             }
         });
@@ -319,7 +336,6 @@ public class SqlUserPersistent implements UserDataPersistent {
                 return userData;
             } catch (SQLException e) {
                 ConsoleLogger.error(plugin, "Failed to load user data for UUID %s: %s", uuid, e.getMessage());
-                e.printStackTrace();
                 return new BaseQuestUserData(uuid,
                         new ArrayList<>(),
                         new ArrayList<>(),
@@ -466,7 +482,6 @@ public class SqlUserPersistent implements UserDataPersistent {
                 }
             } catch (SQLException e) {
                 ConsoleLogger.error(plugin, "Failed to delete user data for UUID %s: %s", uuid, e.getMessage());
-                e.printStackTrace();
                 throw new RuntimeException(e);
             }
         });

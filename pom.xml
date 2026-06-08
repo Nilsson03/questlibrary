@@ -49,6 +49,7 @@
                     </execution>
                 </executions>
             </plugin>
+            <!-- To copy the built JAR to a local test server, set -Dtest.plugins.dir=/path/to/plugins -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-antrun-plugin</artifactId>
@@ -60,10 +61,10 @@
                             <goal>run</goal>
                         </goals>
                         <configuration>
-                            <target>
+                            <target if="test.plugins.dir">
                                 <copy
                                         file="${project.build.directory}/${project.artifactId}-${project.version}.jar"
-                                        todir="D:/Minecraft Develop/Test plugins/plugins"
+                                        todir="${test.plugins.dir}"
                                 />
                             </target>
                         </configuration>

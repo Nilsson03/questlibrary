@@ -49,8 +49,7 @@ public class BaseQuestLoader implements QuestLoader {
             FileConfiguration config = YamlConfiguration.loadConfiguration(file);
             return parseQuest(config, file);
         } catch (Exception e) {
-            questService.getPlugin().getLogger().severe("Failed to load quest from file: " + file.getName());
-            e.printStackTrace();
+            questService.getPlugin().getLogger().severe("Failed to load quest from file: " + file.getName() + ": " + e.getMessage());
             return null;
         }
     }
@@ -129,7 +128,6 @@ public class BaseQuestLoader implements QuestLoader {
                 }
             } catch (Exception e) {
                 questService.getPlugin().getLogger().severe("Failed to parse objective '" + objectiveKey + "': " + e.getMessage());
-                e.printStackTrace();
             }
         }
 

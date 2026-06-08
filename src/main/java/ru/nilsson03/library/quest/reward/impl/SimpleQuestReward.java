@@ -11,6 +11,7 @@ import ru.nilsson03.library.text.messeger.UniversalMessenger;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 /**
  * Абстрактный класс, представляющий награду за выполнение квеста
@@ -19,6 +20,8 @@ import java.util.UUID;
  * @see QuestManager
  */
 public class SimpleQuestReward implements QuestReward {
+
+    private static final Pattern SAFE_PLAYER_NAME = Pattern.compile("^[a-zA-Z0-9_]{1,16}$");
 
     private final UUID uniqueIdentificationKey; // Должно быть уникальным
     private final List<String> commands;
@@ -65,8 +68,13 @@ public class SimpleQuestReward implements QuestReward {
             }
 
             if (!commands.isEmpty()) {
+                String playerName = player.getName();
+                if (!SAFE_PLAYER_NAME.matcher(playerName).matches()) {
+                    Bukkit.getLogger().warning("Blocked reward command execution: invalid player name '" + playerName + "'");
+                    return;
+                }
                 commands.forEach(command -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(),
-                                                                   command.replace("{player}", player.getName())));
+                                                                   command.replace("{player}", playerName)));
             }
         }
     }
