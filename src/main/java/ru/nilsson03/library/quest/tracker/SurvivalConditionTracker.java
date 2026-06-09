@@ -5,6 +5,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.scheduler.BukkitRunnable;
+import ru.nilsson03.library.bukkit.util.log.ConsoleLogger;
 import ru.nilsson03.library.quest.objective.goal.impl.SurvivalConditionGoal;
 import ru.nilsson03.library.quest.objective.registry.ObjectiveType;
 import ru.nilsson03.library.quest.user.data.QuestUserData;
@@ -54,6 +55,8 @@ public class SurvivalConditionTracker {
         Long lastCheck = lastCheckTime.get(playerId);
         
         if (lastCheck == null) {
+            ConsoleLogger.info(plugin.getName(), 
+                "SurvivalConditionTracker: First check for player %s", player.getName());
             lastCheckTime.put(playerId, currentTime);
             return;
         }
@@ -63,10 +66,22 @@ public class SurvivalConditionTracker {
             return;
         }
 
-        for (PotionEffect effect : player.getActivePotionEffects()) {
+        int effectCount = player.getActivePotionEffects().size();
+        
+        if (effectCount > 0) {
+            for (PotionEffect effect : player.getActivePotionEffects()) {
+                SurvivalConditionGoal.SurvivalData survivalData = new SurvivalConditionGoal.SurvivalData(
+                    effect.getType(),
+                    player.getWorld().getName(),
+                    player.getLocation().getBlock().getBiome()
+                );
+
+                userData.incrementProgressQuestsWithObjectiveType(objectiveType, survivalData, elapsedSeconds);
+            }
+        } else {
             SurvivalConditionGoal.SurvivalData survivalData = new SurvivalConditionGoal.SurvivalData(
-                effect.getType(),
-                player.getWorld(),
+                null,
+                player.getWorld().getName(),
                 player.getLocation().getBlock().getBiome()
             );
 

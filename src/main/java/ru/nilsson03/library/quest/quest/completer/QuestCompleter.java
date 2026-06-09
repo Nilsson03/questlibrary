@@ -11,6 +11,10 @@ public interface QuestCompleter {
     void completeQuest(QuestUserData user, BaseQuest quest, Consumer<QuestUserData> questUserDataConsumer);
 
     default void giveReward(QuestUserData user, BaseQuest quest) {
+        if (quest.rewards() == null) {
+            return;
+        }
+
         quest.rewards()
                 .executeCommands(user);
 

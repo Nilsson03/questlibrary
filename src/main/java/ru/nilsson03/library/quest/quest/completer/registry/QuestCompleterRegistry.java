@@ -21,7 +21,17 @@ public class QuestCompleterRegistry {
     }
 
     public QuestCompleter getCompleter(BaseQuest quest) {
-        return completers.get(quest.getClass());
+        Class<?> questClass = quest.getClass();
+        
+        while (questClass != null && BaseQuest.class.isAssignableFrom(questClass)) {
+            QuestCompleter completer = completers.get(questClass);
+            if (completer != null) {
+                return completer;
+            }
+            questClass = questClass.getSuperclass();
+        }
+        
+        return null;
     }
 
     public QuestCompleter getDefaultCompleter() {

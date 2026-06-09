@@ -1,8 +1,8 @@
 package ru.nilsson03.library.quest.objective.goal.impl;
 
-import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.potion.PotionEffectType;
+
 import ru.nilsson03.library.quest.objective.goal.sub.ObjectiveGoal;
 
 public class SurvivalConditionGoal implements ObjectiveGoal {
@@ -25,7 +25,7 @@ public class SurvivalConditionGoal implements ObjectiveGoal {
 
     public record SurvivalData(
             PotionEffectType effect,
-            World world,
+            String worldName,
             Biome biome) {
     }
 
@@ -45,12 +45,14 @@ public class SurvivalConditionGoal implements ObjectiveGoal {
             return false;
         }
 
-        if (requiredEffect != null && !requiredEffect.equals(data.effect())) {
-            return false;
+        if (requiredEffect != null) {
+            if (data.effect() == null || !requiredEffect.equals(data.effect())) {
+                return false;
+            }
         }
 
-        if (requiredWorld != null && data.world() != null) {
-            if (!requiredWorld.equalsIgnoreCase(data.world().getName())) {
+        if (requiredWorld != null && data.worldName() != null) {
+            if (!requiredWorld.equalsIgnoreCase(data.worldName())) {
                 return false;
             }
         }

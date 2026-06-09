@@ -1,9 +1,9 @@
 package ru.nilsson03.library.quest.objective.registry;
 
-import org.bukkit.event.Event;
-
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
+
+import org.bukkit.event.Event;
 
 public interface ObjectiveType {
 
@@ -14,7 +14,7 @@ public interface ObjectiveType {
     ConcurrentHashMap<String, ObjectiveType> GLOBAL_CACHE = new ConcurrentHashMap<>();
 
     static ObjectiveType create(String key, Class<? extends Event> eventClass) {
-        String cacheKey = key.toLowerCase() + ":" + eventClass.getName();
+        String cacheKey = key.toLowerCase() + ":" + (eventClass != null ? eventClass.getName() : "null");
 
         return GLOBAL_CACHE.computeIfAbsent(cacheKey, k -> new ObjectiveType() {
             @Override
@@ -43,7 +43,8 @@ public interface ObjectiveType {
             
             @Override
             public String toString() {
-                return "ObjectiveType{key='" + key() + "', eventClass=" + eventClass().getSimpleName() + "}";
+                return "ObjectiveType{key='" + key() + "', eventClass=" + 
+                       (eventClass() != null ? eventClass().getSimpleName() : "null") + "}";
             }
         });
     }

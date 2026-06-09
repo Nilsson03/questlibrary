@@ -44,11 +44,24 @@ public class QuestStorage {
 
         try {
             File questsDataFolder = FileHelper.getOrCreateDirectory(questsFolderPath);
-            this.quests.addAll(questLoader.loadQuests(questsDataFolder));
-            ConsoleLogger.info(plugin.getName(), "Loaded %s quests", quests.size());
+            List<BaseQuest> loadedQuests = questLoader.loadQuests(questsDataFolder);
+            
+            List<BaseQuest> validQuests = loadedQuests.stream()
+                    .filter(Objects::nonNull)
+                    .toList();
+            
+            this.quests.addAll(validQuests);
+            
+            int failedCount = loadedQuests.size() - validQuests.size();
+            if (failedCount > 0) {
+                ConsoleLogger.warn(plugin.getName(), 
+                    "Failed to load %d quests due to errors", failedCount);
+            }
+            
+            ConsoleLogger.info(plugin.getName(), "Loaded %s quests", validQuests.size());
         } catch (Exception exception) {
-            plugin.getLogger()
-                    .severe("Failed to load quests from " + questsFolderPath);
+            ConsoleLogger.error(plugin.getName(), 
+                "Failed to load quests from %s: %s", questsFolderPath, exception.getMessage());
         }
     }
 

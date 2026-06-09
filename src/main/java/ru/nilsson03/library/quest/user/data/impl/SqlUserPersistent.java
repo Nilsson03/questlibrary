@@ -1,5 +1,18 @@
 package ru.nilsson03.library.quest.user.data.impl;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+
 import ru.nilsson03.hikaricp.SharedPoolRegistry;
 import ru.nilsson03.library.NPlugin;
 import ru.nilsson03.library.bukkit.util.log.ConsoleLogger;
@@ -10,10 +23,6 @@ import ru.nilsson03.library.quest.quest.simple.BaseQuest;
 import ru.nilsson03.library.quest.storage.QuestStorage;
 import ru.nilsson03.library.quest.user.data.QuestUserData;
 import ru.nilsson03.library.quest.user.data.UserDataPersistent;
-
-import java.sql.*;
-import java.util.*;
-import java.util.concurrent.CompletableFuture;
 
 public class SqlUserPersistent implements UserDataPersistent {
 
@@ -71,7 +80,7 @@ public class SqlUserPersistent implements UserDataPersistent {
             ConsoleLogger.info(plugin, "SQL tables for quest user data initialized successfully.");
         } catch (SQLException e) {
             ConsoleLogger.error(plugin, "Failed to initialize SQL tables: %s", e.getMessage());
-            e.printStackTrace();
+            // e.printStackTrace();
         }
     }
 
@@ -356,7 +365,7 @@ public class SqlUserPersistent implements UserDataPersistent {
                     BaseQuest quest = questStorage.getQuestByUniqueKeyOrThrow(questKey);
                     completedQuests.add(quest);
                 } catch (Exception e) {
-                    plugin.getLogger().warning("Quest with key '" + questKey + "' not found in storage, skipping.");
+                    ConsoleLogger.warn(plugin, "Quest with key '%s' not found in storage, skipping", questKey);
                 }
             }
         }
@@ -406,7 +415,7 @@ public class SqlUserPersistent implements UserDataPersistent {
                         progressList.add(progress);
                     }
                 } catch (Exception e) {
-                    plugin.getLogger().warning("Failed to load progress for quest '" + questKey + "': " + e.getMessage());
+                    ConsoleLogger.warn(plugin, "Failed to load progress for quest '%s': %s", questKey, e.getMessage());
                 }
             }
         }
@@ -461,12 +470,11 @@ public class SqlUserPersistent implements UserDataPersistent {
                     if (rowsAffected > 0) {
                         ConsoleLogger.info(plugin, "User data deleted successfully for UUID: %s", uuid);
                     } else {
-                        plugin.getLogger().warning("No user data found to delete for UUID: " + uuid);
+                        ConsoleLogger.warn(plugin, "No user data found to delete for UUID: %s", uuid);
                     }
                 }
             } catch (SQLException e) {
                 ConsoleLogger.error(plugin, "Failed to delete user data for UUID %s: %s", uuid, e.getMessage());
-                e.printStackTrace();
                 throw new RuntimeException(e);
             }
         });

@@ -1,9 +1,18 @@
 package ru.nilsson03.library.quest.storage.loader.impl;
 
+import java.io.File;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
+
 import ru.nilsson03.library.bukkit.util.Namespace;
+import ru.nilsson03.library.bukkit.util.log.ConsoleLogger;
 import ru.nilsson03.library.quest.condition.QuestCondition;
 import ru.nilsson03.library.quest.core.service.QuestService;
 import ru.nilsson03.library.quest.meta.QuestMeta;
@@ -15,9 +24,6 @@ import ru.nilsson03.library.quest.quest.simple.impl.BaseQuestImpl;
 import ru.nilsson03.library.quest.reward.QuestReward;
 import ru.nilsson03.library.quest.reward.parser.registry.RewardParserRegistry;
 import ru.nilsson03.library.quest.storage.loader.QuestLoader;
-
-import java.io.File;
-import java.util.*;
 
 /**
  * Базовая реализация загрузчика квестов из YAML файлов.
@@ -36,12 +42,12 @@ public class BaseQuestLoader implements QuestLoader {
     @Override
     public BaseQuest loadQuestFromFile(File file) {
         if (file == null || !file.exists() || !file.isFile()) {
-            questService.getPlugin().getLogger().warning("Invalid quest file: " + (file != null ? file.getName() : "null"));
+            ConsoleLogger.warn(questService.getPlugin(), "Invalid quest file: %s", (file != null ? file.getName() : "null"));
             return null;
         }
 
         if (!file.getName().endsWith(".yml") && !file.getName().endsWith(".yaml")) {
-            questService.getPlugin().getLogger().warning("Quest file must be YAML format: " + file.getName());
+            ConsoleLogger.warn(questService.getPlugin(), "Quest file must be YAML format: %s", file.getName());
             return null;
         }
 
@@ -49,8 +55,7 @@ public class BaseQuestLoader implements QuestLoader {
             FileConfiguration config = YamlConfiguration.loadConfiguration(file);
             return parseQuest(config, file);
         } catch (Exception e) {
-            questService.getPlugin().getLogger().severe("Failed to load quest from file: " + file.getName());
-            e.printStackTrace();
+            ConsoleLogger.error(questService.getPlugin(), "Failed to load quest from file %s: %s", file.getName(), e.getMessage());
             return null;
         }
     }
@@ -58,7 +63,8 @@ public class BaseQuestLoader implements QuestLoader {
     private BaseQuest parseQuest(ConfigurationSection config, File file) {
         String questKey = config.getString("key");
         if (questKey == null || questKey.trim().isEmpty()) {
-            throw new IllegalArgumentException("Quest key cannot be null or empty in file: " + file.getName());
+            ConsoleLogger.error(questService.getPlugin(), "Quest key cannot be null or empty in file: %s", file.getName());
+            return null;
         }
 
         String pluginName = questService.getPlugin().getName();
@@ -75,15 +81,16 @@ public class BaseQuestLoader implements QuestLoader {
     private QuestMeta parseMeta(ConfigurationSection config) {
         ConfigurationSection metaSection = config.getConfigurationSection("meta");
         if (metaSection == null) {
-            throw new IllegalArgumentException("Quest meta section is missing");
+            ConsoleLogger.error(questService.getPlugin(), "Quest meta section is missing");
+            return null;
         }
 
         try {
             MetaParserRegistry metaParserRegistry = questService.getMetaParserRegistry();
             return metaParserRegistry.parse(metaSection);
         } catch (Exception e) {
-            questService.getPlugin().getLogger().severe("Failed to parse quest meta: " + e.getMessage());
-            throw new RuntimeException("Failed to parse quest meta", e);
+            ConsoleLogger.error(questService.getPlugin(), "Failed to parse quest meta: %s", e.getMessage());
+            return null;
         }
     }
 
@@ -101,7 +108,7 @@ public class BaseQuestLoader implements QuestLoader {
                 conditions.add(condition);
             }
         } catch (Exception e) {
-            questService.getPlugin().getLogger().warning("Failed to parse conditions: " + e.getMessage());
+            ConsoleLogger.warn(questService.getPlugin(), "Failed to parse conditions: %s", e.getMessage());
         }
 
         return conditions;
@@ -110,7 +117,8 @@ public class BaseQuestLoader implements QuestLoader {
     private List<Objective> parseObjectives(ConfigurationSection config) {
         ConfigurationSection objectivesSection = config.getConfigurationSection("objectives");
         if (objectivesSection == null) {
-            throw new IllegalArgumentException("Quest objectives section is missing");
+            ConsoleLogger.error(questService.getPlugin(), "Quest objectives section is missing");
+            return new ArrayList<>();
         }
 
         List<Objective> objectives = new ArrayList<>();
@@ -118,7 +126,7 @@ public class BaseQuestLoader implements QuestLoader {
         for (String objectiveKey : objectivesSection.getKeys(false)) {
             ConfigurationSection objectiveSection = objectivesSection.getConfigurationSection(objectiveKey);
             if (objectiveSection == null) {
-                questService.getPlugin().getLogger().warning("Invalid objective section: " + objectiveKey);
+                ConsoleLogger.warn(questService.getPlugin(), "Invalid objective section: %s", objectiveKey);
                 continue;
             }
 
@@ -128,13 +136,13 @@ public class BaseQuestLoader implements QuestLoader {
                     objectives.add(objective);
                 }
             } catch (Exception e) {
-                questService.getPlugin().getLogger().severe("Failed to parse objective '" + objectiveKey + "': " + e.getMessage());
-                e.printStackTrace();
+                ConsoleLogger.error(questService.getPlugin(), "Failed to parse objective '%s': %s", objectiveKey, e.getMessage());
             }
         }
 
         if (objectives.isEmpty()) {
-            throw new IllegalArgumentException("Quest must have at least one objective");
+            ConsoleLogger.error(questService.getPlugin(), "Quest must have at least one objective");
+            return new ArrayList<>();
         }
 
         return objectives;
@@ -143,15 +151,15 @@ public class BaseQuestLoader implements QuestLoader {
     private QuestReward parseReward(ConfigurationSection config) {
         ConfigurationSection rewardSection = config.getConfigurationSection("rewards");
         if (rewardSection == null) {
-            throw new IllegalArgumentException("Quest reward section is missing");
+            return null;
         }
 
         try {
             RewardParserRegistry rewardParserRegistry = questService.getRewardParserRegistry();
             return rewardParserRegistry.parse(rewardSection);
         } catch (Exception e) {
-            questService.getPlugin().getLogger().severe("Failed to parse quest reward: " + e.getMessage());
-            throw new RuntimeException("Failed to parse quest reward", e);
+            ConsoleLogger.error(questService.getPlugin(), "Failed to parse quest reward: %s", e.getMessage());
+            return null;
         }
     }
 }

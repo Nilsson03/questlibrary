@@ -1,15 +1,21 @@
 package ru.nilsson03.library.quest.user.storage;
 
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+
 import org.bukkit.plugin.Plugin;
+
 import ru.nilsson03.library.NPlugin;
+import ru.nilsson03.library.bukkit.util.log.ConsoleLogger;
 import ru.nilsson03.library.quest.exception.QuestAlreadyCompletedException;
 import ru.nilsson03.library.quest.objective.progress.QuestProgress;
 import ru.nilsson03.library.quest.quest.simple.BaseQuest;
 import ru.nilsson03.library.quest.user.data.QuestUserData;
 import ru.nilsson03.library.quest.user.data.UserDataPersistent;
-
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 
 public class QuestUsersStorage {
 
@@ -18,19 +24,35 @@ public class QuestUsersStorage {
     private final UserDataPersistent userDataPersistent;
 
     private final Map<UUID, QuestUserData> usersData;
+    private final NPlugin plugin;
 
     public QuestUsersStorage(NPlugin plugin,
-                             UserDataPersistent userDataPersistent) {
+            UserDataPersistent userDataPersistent) {
 
         if (initializationMap.containsKey(plugin)) {
             throw new IllegalStateException(
-                    "Error on loading QuestService. Quest service for plugin " + plugin.getName() + " is already initialized.");
+                    "Error on loading QuestService. Quest service for plugin " + plugin.getName()
+                            + " is already initialized.");
         }
+        this.plugin = plugin;
 
         this.usersData = new ConcurrentHashMap<>();
         this.userDataPersistent = userDataPersistent;
 
         initializationMap.put(plugin, this);
+    }
+
+    /**
+     * Удаляет данные игрока из кэша и базы данных
+     * 
+     * @param questUserData игрок
+     */
+    public void deleteUserData(QuestUserData questUserData) {
+        Objects.requireNonNull(questUserData, "QuestUserData is null");
+        UUID userId = questUserData.uuid();
+        usersData.remove(userId);
+        userDataPersistent.deleteUserData(userId);
+        ConsoleLogger.info(plugin, "Данные игрока о квестах %s были удалены", userId);
     }
 
     /**
@@ -89,7 +111,8 @@ public class QuestUsersStorage {
      * Получение прогресса выполнения квеста у игрока
      *
      * @param uuid  идентификатор пользователя
-     * @param quest квест, информацию о прогрессе выполнения которого необходимо получить
+     * @param quest квест, информацию о прогрессе выполнения которого необходимо
+     *              получить
      * @return объект, представляющий прогресс прохождения игроком квеста
      */
     public QuestProgress getObjectiveProgress(UUID uuid, BaseQuest quest) {
@@ -129,17 +152,17 @@ public class QuestUsersStorage {
     public Plugin plugin() {
         return null;
     }
-    
+
     public void saveAllData() {
         for (QuestUserData userData : usersData.values()) {
             saveData(userData);
         }
     }
-    
+
     public UserDataPersistent getUserDataPersistent() {
         return userDataPersistent;
     }
-    
+
     public Collection<QuestUserData> getAllLoadedUsers() {
         return usersData.values();
     }

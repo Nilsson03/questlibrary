@@ -3,9 +3,9 @@ package ru.nilsson03.library.quest.core.listener;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 
-import ru.nilsson03.library.bukkit.file.configuration.BukkitConfig;
 import ru.nilsson03.library.quest.core.config.Config;
 import ru.nilsson03.library.quest.core.event.UserQuestProgressEvent;
 import ru.nilsson03.library.quest.objective.goal.Goal;
@@ -17,16 +17,19 @@ import ru.nilsson03.library.text.util.ReplaceData;
 
 public class QuestProgressListener implements Listener {
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.MONITOR)
     public void onProgress(UserQuestProgressEvent event) {
-        BaseQuest quest = event.getQuest();
+        if (event.isCancelled()) {
+            return;
+        }
 
+        BaseQuest quest = event.getQuest();
         QuestUserData userData = event.getQuestUserData();
         Goal goal = event.getGoal();
 
         long requiredValue = goal.targetValue();
 
-        if (userData == null && quest == null) {
+        if (userData == null || quest == null) {
             return;
         }
 

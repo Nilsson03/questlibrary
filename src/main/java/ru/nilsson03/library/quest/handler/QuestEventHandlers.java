@@ -4,10 +4,10 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
+import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.Levelled;
 import org.bukkit.entity.Entity;
@@ -19,7 +19,6 @@ import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.enchantment.EnchantItemEvent;
-import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.EntityBreedEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
@@ -43,8 +42,10 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
 
+import ru.nilsson03.library.bukkit.util.log.ConsoleLogger;
 import ru.nilsson03.library.quest.handler.handlers.QuestEventHandler;
 import ru.nilsson03.library.quest.handler.handlers.impl.UniversalQuestEventHandler;
+import ru.nilsson03.library.quest.handler.wrapper.TntIgniteWrapper;
 import ru.nilsson03.library.quest.objective.registry.ObjectiveRegistry;
 import ru.nilsson03.library.quest.user.data.QuestUserData;
 import ru.nilsson03.library.quest.user.storage.QuestUsersStorage;
@@ -320,16 +321,7 @@ public class QuestEventHandlers {
                             objectiveRegistry.getObjectiveType("SHEAR_SHEEP"), 1);
                 });
 
-        QuestEventHandler<EntityExplodeEvent> explodeBlocksHandler = new UniversalQuestEventHandler<>(
-                questUsersStorage, (event, questUserData) -> {
-                    int blockCount = event.blockList().size();
-                    if (blockCount > 0) {
-                        questUserData.incrementProgressQuestsWithValueGoals(
-                                objectiveRegistry.getObjectiveType("TNT_BREAK_BLOCKS"), blockCount);
-                    }
-                });
-
-        QuestEventHandler<PlayerInteractEvent> composterHandler = new UniversalQuestEventHandler<>(
+        QuestEventHandler<PlayerInteractEvent> fillComposterHandler = new UniversalQuestEventHandler<>(
                 questUsersStorage, (event, questUserData) -> {
                     if (event.getHand() == null || event.getHand() != EquipmentSlot.HAND)
                         return;
@@ -340,8 +332,35 @@ public class QuestEventHandlers {
                     if (block != null && block.getType() == Material.COMPOSTER) {
                         ItemStack item = event.getPlayer().getInventory().getItemInMainHand();
                         if (item != null && item.getType() != Material.AIR) {
-                            questUserData.incrementProgressQuestsWithValueGoals(
-                                    objectiveRegistry.getObjectiveType("FILL_COMPOSTER"), 1);
+                            Levelled levelledBefore = (Levelled) block.getBlockData();
+                            int levelBefore = levelledBefore.getLevel();
+                            
+                            ConsoleLogger.info(eventManager.getPlugin().getName(), 
+                                "Player %s attempting to fill composter with %s, current level: %d",
+                                event.getPlayer().getName(), item.getType(), levelBefore);
+                            
+                            if (QuestEventHandlersUtil.isCompostable(item.getType())) {
+                                org.bukkit.Bukkit.getScheduler().runTaskLater(eventManager.getPlugin(), () -> {
+                                    if (block.getType() == Material.COMPOSTER) {
+                                        Levelled levelledAfter = (Levelled) block.getBlockData();
+                                        int levelAfter = levelledAfter.getLevel();
+                                        
+                                        if (levelAfter > levelBefore) {
+                                            ConsoleLogger.info(eventManager.getPlugin().getName(), 
+                                                "Composter level increased from %d to %d, incrementing FILL_COMPOSTER progress", 
+                                                levelBefore, levelAfter);
+                                            questUserData.incrementProgressQuestsWithValueGoals(
+                                                    objectiveRegistry.getObjectiveType("FILL_COMPOSTER"), 1);
+                                        } else {
+                                            ConsoleLogger.warn(eventManager.getPlugin().getName(), 
+                                                "Composter level did not increase (still %d), item was not accepted", levelAfter);
+                                        }
+                                    }
+                                }, 1L);
+                            } else {
+                                ConsoleLogger.warn(eventManager.getPlugin().getName(), 
+                                    "Item %s is NOT compostable, skipping FILL_COMPOSTER progress", item.getType());
+                            }
                         }
                     }
                 });
@@ -370,7 +389,7 @@ public class QuestEventHandlers {
                     }
                 });
 
-        QuestEventHandler<PlayerInteractEvent> compostFullHandler = new UniversalQuestEventHandler<>(
+        QuestEventHandler<PlayerInteractEvent> collectFromComposterHandler = new UniversalQuestEventHandler<>(
                 questUsersStorage, (event, questUserData) -> {
                     if (event.getHand() == null || event.getHand() != EquipmentSlot.HAND)
                         return;
@@ -381,62 +400,73 @@ public class QuestEventHandlers {
                     if (block != null && block.getType() == Material.COMPOSTER) {
                         Levelled levelled = (Levelled) block.getBlockData();
                         int level = levelled.getLevel();
+                        
+                        ConsoleLogger.info(eventManager.getPlugin().getName(), 
+                            "Player %s interacting with composter, level: %d",
+                            event.getPlayer().getName(), level);
+                        
                         if (level == 8) {
-                            questUserData.incrementProgressQuestsWithObjectiveType(
-                                    objectiveRegistry.getObjectiveType("COLLECT_FROM_COMPOSTER"), level, 1);
-                        }
-                    }
-                });
-
-        QuestEventHandler<CreatureSpawnEvent> dragonResurrectHandler = new UniversalQuestEventHandler<>(
-                questUsersStorage, (event, questUserData) -> {
-                    if (event.getEntity().getType() == EntityType.ENDER_DRAGON) {
-                        if (event.getSpawnReason() == CreatureSpawnEvent.SpawnReason.CUSTOM) {
+                            ConsoleLogger.info(eventManager.getPlugin().getName(), 
+                                "Composter is full (level 8), incrementing COLLECT_FROM_COMPOSTER progress");
                             questUserData.incrementProgressQuestsWithValueGoals(
-                                    objectiveRegistry.getObjectiveType("RESURRECT_DRAGON"), 1);
+                                    objectiveRegistry.getObjectiveType("COLLECT_FROM_COMPOSTER"), 1);
+                        } else {
+                            ConsoleLogger.info(eventManager.getPlugin().getName(), 
+                                "Composter is not full (level %d), skipping COLLECT_FROM_COMPOSTER progress", level);
                         }
                     }
                 });
 
-        QuestEventHandler<PlayerInteractEvent> igniteTntHandler = new UniversalQuestEventHandler<>(
+        QuestEventHandler<BlockPlaceEvent> dragonResurrectHandler = new UniversalQuestEventHandler<>(
                 questUsersStorage, (event, questUserData) -> {
-                    if (event.getAction() == Action.RIGHT_CLICK_BLOCK) {
-                        Block block = event.getClickedBlock();
-                        if (block != null && block.getType() == Material.TNT) {
-                            ItemStack item = event.getItem();
-                            if (item != null && (item.getType() == Material.FLINT_AND_STEEL
-                                    || item.getType() == Material.FIRE_CHARGE)) {
-                                questUserData.incrementProgressQuestsWithValueGoals(
-                                        objectiveRegistry.getObjectiveType("IGNITE_TNT"), 1);
+                    Block placedBlock = event.getBlockPlaced();
 
-                                Location tntLocation = block.getLocation();
-                                UUID playerId = questUserData.uuid();
-
-                                Bukkit.getScheduler().runTaskLater(eventManager.getPlugin(), () -> {
-                                    tntLocation.getWorld().getNearbyEntities(tntLocation, 1.5, 1.5, 1.5).stream()
-                                            .filter(entity -> entity.getType() == EntityType.PRIMED_TNT)
-                                            .findFirst()
-                                            .ifPresent(tnt -> {
-                                                tnt.getPersistentDataContainer().set(
-                                                        TNT_IGNITER_KEY,
-                                                        PersistentDataType.STRING,
-                                                        playerId.toString());
-                                            });
-                                }, 1L);
-                            }
-                        }
+                    if (placedBlock.getType() != Material.END_CRYSTAL) {
+                        return;
+                    }
+                    
+                    Block blockBelow = placedBlock.getRelative(0, -1, 0);
+                    if (blockBelow.getType() != Material.END_PORTAL_FRAME) {
+                        return;
+                    }
+                    
+                    World world = placedBlock.getWorld();
+                    if (world.getEnvironment() != World.Environment.THE_END) {
+                        return;
+                    }
+                    
+                    ConsoleLogger.info(eventManager.getPlugin().getName(), 
+                        "Player %s placed End Crystal on portal frame at %s", 
+                        event.getPlayer().getName(), placedBlock.getLocation());
+                    
+                    // Получаем центр портала (0, Y, 0 в мире Края)
+                    Location portalCenter = new Location(world, 0, blockBelow.getY(), 0);
+                    
+                    // Проверяем, установлены ли все 4 кристалла
+                    if (areFourCrystalsPlaced(portalCenter)) {
+                        ConsoleLogger.info(eventManager.getPlugin().getName(), 
+                            "All 4 End Crystals placed! Player %s resurrected the dragon", 
+                            event.getPlayer().getName());
+                        
+                        questUserData.incrementProgressQuestsWithValueGoals(
+                                objectiveRegistry.getObjectiveType("RESURRECT_DRAGON"), 1);
+                    } else {
+                        ConsoleLogger.info(eventManager.getPlugin().getName(), 
+                            "Not all 4 crystals placed yet");
                     }
                 });
 
         QuestEventHandler<EntityExplodeEvent> tntBreakBlocksHandler = (event) -> {
-            if (event.getEntity() != null && event.getEntity().getType() == EntityType.PRIMED_TNT) {
+            if (event.getEntity().getType() == EntityType.PRIMED_TNT) {
                 Entity tnt = event.getEntity();
                 int blockCount = event.blockList().size();
+                ConsoleLogger.info(eventManager.getPlugin().getName(), "TNT exploded! Blocks destroyed: %d", blockCount);
 
                 if (blockCount > 0
                         && tnt.getPersistentDataContainer().has(TNT_IGNITER_KEY, PersistentDataType.STRING)) {
                     String playerUuidString = tnt.getPersistentDataContainer().get(TNT_IGNITER_KEY,
                             PersistentDataType.STRING);
+                    ConsoleLogger.info(eventManager.getPlugin().getName(), "Found igniter UUID: %s", playerUuidString);
 
                     if (playerUuidString != null) {
                         try {
@@ -445,32 +475,21 @@ public class QuestEventHandlers {
 
                             if (questUserData != null && questUserData.hasActiveQuestWithCurrentObjectiveType(
                                     objectiveRegistry.getObjectiveType("TNT_BREAK_BLOCKS"))) {
+                                ConsoleLogger.info(eventManager.getPlugin().getName(), "Incrementing TNT_BREAK_BLOCKS progress by %d", blockCount);
                                 questUserData.incrementProgressQuestsWithValueGoals(
                                         objectiveRegistry.getObjectiveType("TNT_BREAK_BLOCKS"), blockCount);
+                            } else {
+                                ConsoleLogger.warn(eventManager.getPlugin().getName(), "Player has no active TNT_BREAK_BLOCKS quest");
                             }
                         } catch (IllegalArgumentException ignored) {
                         }
                     }
+                } else {
+                    ConsoleLogger.warn(eventManager.getPlugin().getName(), "TNT has no igniter UUID or destroyed 0 blocks");
                 }
             }
         };
 
-        QuestEventHandler<PlayerInteractEvent> fillComposterHandler = new UniversalQuestEventHandler<>(
-                questUsersStorage, (event, questUserData) -> {
-                    if (event.getHand() == null || event.getHand() != EquipmentSlot.HAND)
-                        return;
-                    if (event.getAction() != Action.RIGHT_CLICK_BLOCK)
-                        return;
-
-                    Block block = event.getClickedBlock();
-                    if (block != null && block.getType() == Material.COMPOSTER) {
-                        ItemStack item = event.getPlayer().getInventory().getItemInMainHand();
-                        if (item != null && item.getType() != Material.AIR) {
-                            questUserData.incrementProgressQuestsWithValueGoals(
-                                    objectiveRegistry.getObjectiveType("FILL_COMPOSTER"), 1);
-                        }
-                    }
-                });
 
         QuestEventHandler<InventoryClickEvent> useGrindstoneHandler = new UniversalQuestEventHandler<>(
                 questUsersStorage, (event, questUserData) -> {
@@ -513,22 +532,23 @@ public class QuestEventHandlers {
                 put("CURE_VILLAGER", cureVillagerHandler);
                 put("USE_TOTEM", useTotemHandler);
                 put("SHEAR_SHEEP", shearSheepHandler);
-                put("FILL_COMPOSTER", composterHandler);
+                put("FILL_COMPOSTER", fillComposterHandler);
                 put("ENCHANT_WITH_LEVEL", enchantWithLevelHandler);
                 put("ANVIL_ENCHANT_HANDLER", anvilEnchantHandler);
                 put("RESURRECT_DRAGON", dragonResurrectHandler);
-                put("IGNITE_TNT", igniteTntHandler);
                 put("TNT_BREAK_BLOCKS", tntBreakBlocksHandler);
-                put("COLLECT_FROM_COMPOSTER", fillComposterHandler);
+                put("COLLECT_FROM_COMPOSTER", collectFromComposterHandler);
                 put("USE_GRINDSTONE_ITEM", useGrindstoneHandler);
                 put("USE_FURNACE", useFurnaceHandler);
                 put("BLOCK_DAMAGE_SHIELD", blockSchieldEventHandler);
             }
         });
 
-        // Регистрируем вспомогательный обработчик для отслеживания игрока при
-        // трансформации зомби-жителя
         eventManager.registerHandler(PlayerInteractEntityEvent.class, transformEntityTrackerHandler);
+
+        TntIgniteWrapper tntIgniteWrapper = new TntIgniteWrapper(
+                eventManager, questUsersStorage, objectiveRegistry, eventManager.getPlugin());
+        tntIgniteWrapper.registerHandlers();
 
         for (Map.Entry<String, QuestEventHandler<?>> entry : handlers.entrySet()) {
             if (entry.getKey().equals("ANVIL_ENCHANT_HANDLER")) {
@@ -549,5 +569,32 @@ public class QuestEventHandlers {
         }
 
         return maxCraftable * event.getRecipe().getResult().getAmount();
+    }
+
+    private boolean areFourCrystalsPlaced(Location portalCenter) {
+        int[][] offsets = {
+            {3, 0, 0},   // Восток
+            {-3, 0, 0},  // Запад
+            {0, 0, 3},   // Юг
+            {0, 0, -3}   // Север
+        };
+
+        int crystalsFound = 0;
+
+        for (int[] offset : offsets) {
+            Location crystalLoc = portalCenter.clone().add(offset[0], offset[1], offset[2]);
+            Block block = crystalLoc.getBlock();
+
+            if (block.getType() == Material.END_CRYSTAL) {
+                crystalsFound++;
+                ConsoleLogger.info(eventManager.getPlugin().getName(),
+                    "Found End Crystal at offset [%d, %d, %d]", offset[0], offset[1], offset[2]);
+            }
+        }
+
+        ConsoleLogger.info(eventManager.getPlugin().getName(),
+            "Total End Crystals found: %d/4", crystalsFound);
+
+        return crystalsFound == 4;
     }
 }

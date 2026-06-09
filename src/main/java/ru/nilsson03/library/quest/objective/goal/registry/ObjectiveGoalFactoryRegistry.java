@@ -12,6 +12,7 @@ import ru.nilsson03.library.bukkit.util.ItemStackParser;
 import ru.nilsson03.library.quest.objective.goal.factory.ObjectiveGoalFactory;
 import ru.nilsson03.library.quest.objective.goal.factory.impl.EnchantWithLevelGoalFactory;
 import ru.nilsson03.library.quest.objective.goal.factory.impl.MovementTypeGoalFactory;
+import ru.nilsson03.library.quest.objective.goal.factory.impl.PrerequisiteQuestGoalFactory;
 import ru.nilsson03.library.quest.objective.goal.factory.impl.SubmitItemGoalFactory;
 import ru.nilsson03.library.quest.objective.goal.factory.impl.SurvivalConditionGoalFactory;
 import ru.nilsson03.library.quest.objective.goal.impl.EntityTypeGoal;
@@ -46,7 +47,7 @@ public class ObjectiveGoalFactoryRegistry {
         });
 
         registerFactory("entity", parameters -> {
-            Object entityTypeObj = parameters.get("entityType");
+            Object entityTypeObj = parameters.get("entity-type");
             EntityType entityType;
             if (entityTypeObj instanceof String) {
                 entityType = EntityType.valueOf((String) entityTypeObj);
@@ -81,5 +82,6 @@ public class ObjectiveGoalFactoryRegistry {
         registerFactory("movement", new MovementTypeGoalFactory());
         registerFactory("survivalCondition", new SurvivalConditionGoalFactory());
         registerFactory("submitItem", new SubmitItemGoalFactory());
+        registerFactory("prerequisiteQuest", new PrerequisiteQuestGoalFactory());
     }
 }

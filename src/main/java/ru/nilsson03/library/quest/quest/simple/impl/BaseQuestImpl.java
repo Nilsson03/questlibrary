@@ -27,7 +27,7 @@ public class BaseQuestImpl implements BaseQuest {
         this.questMeta = Objects.requireNonNull(questMeta, "QuestMeta cannot be null");
         this.questCondition = new HashSet<>(Objects.requireNonNull(questCondition, "QuestCondition cannot be null"));
         this.objectives = new ArrayList<>(Objects.requireNonNull(objectives, "Objectives cannot be null"));
-        this.rewards = Objects.requireNonNull(rewards, "QuestReward cannot be null");
+        this.rewards = rewards;
     }
 
     @Override

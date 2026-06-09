@@ -92,6 +92,12 @@
     <dependencies>
         <dependency>
             <groupId>ru.nilsson03</groupId>
+            <artifactId>dynamiteSticks</artifactId>
+            <version>1.2.4-BETA</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>ru.nilsson03</groupId>
             <artifactId>baselibrary</artifactId>
             <version>1.2.6-7-DEV</version>
         </dependency>

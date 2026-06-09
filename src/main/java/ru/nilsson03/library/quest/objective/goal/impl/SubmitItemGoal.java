@@ -22,6 +22,10 @@ public class SubmitItemGoal extends ItemStackGoal {
     }
 
     public boolean submitItems(ItemStack[] items) {
+        return submitItems(items, submittedCount.get());
+    }
+
+    public boolean submitItems(ItemStack[] items, long currentProgress) {
         boolean anySubmitted = false;
 
         for (ItemStack item : items) {
@@ -41,7 +45,7 @@ public class SubmitItemGoal extends ItemStackGoal {
                 }
             }
 
-            int currentSubmitted = submittedCount.get();
+            int currentSubmitted = (int) currentProgress;
             int required = (int) targetValue();
 
             if (currentSubmitted >= required) {
@@ -57,6 +61,7 @@ public class SubmitItemGoal extends ItemStackGoal {
                 item.setAmount(item.getAmount() - toSubmit);
 
                 anySubmitted = true;
+                currentProgress += toSubmit;
             }
         }
 

@@ -1,10 +1,12 @@
 package ru.nilsson03.library.quest.util;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.bukkit.Material;
+import org.bukkit.block.Biome;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.EntityType;
 import org.bukkit.inventory.ItemStack;
@@ -17,16 +19,20 @@ import ru.nilsson03.library.bukkit.util.TimeUtil;
 import ru.nilsson03.library.bukkit.util.TranslationUtil;
 import ru.nilsson03.library.quest.core.config.Config;
 import ru.nilsson03.library.quest.objective.Objective;
+import ru.nilsson03.library.quest.objective.ObjectiveFormatter;
 import ru.nilsson03.library.quest.objective.goal.Goal;
 import ru.nilsson03.library.quest.objective.goal.impl.EntityTypeGoal;
 import ru.nilsson03.library.quest.objective.goal.impl.ItemStackGoal;
 import ru.nilsson03.library.quest.objective.goal.impl.MaterialGoal;
+import ru.nilsson03.library.quest.objective.goal.impl.MovementTypeGoal;
 import ru.nilsson03.library.quest.objective.goal.impl.NumericGoal;
+import ru.nilsson03.library.quest.objective.goal.impl.PrerequisiteQuestGoal;
+import ru.nilsson03.library.quest.objective.goal.impl.SubmitItemGoal;
+import ru.nilsson03.library.quest.objective.goal.impl.SurvivalConditionGoal;
 import ru.nilsson03.library.quest.objective.progress.QuestProgress;
 import ru.nilsson03.library.quest.objective.registry.ObjectiveType;
 import ru.nilsson03.library.text.api.UniversalTextApi;
 import ru.nilsson03.library.text.util.ReplaceData;
-
 /**
  * Утилита для форматирования прогресса квестов в текстовый список.
  * Показывает прогресс для незавершённых целей и перечёркивает завершённые.
@@ -37,7 +43,60 @@ public class QuestProgressFormatter {
     private static final String RESET = "§r";
     private static final String COMPLETE_COLOR = "§a";
     private static final String INCOMPLETE_COLOR = "§7";
-    private static final String PROGRESS_COLOR = "§e";
+    
+    @FunctionalInterface
+    public interface GoalFormatter {
+        String format(Goal goal);
+    }
+
+    private static final Map<Class<? extends Goal>, GoalFormatter> customFormatters = new HashMap<>();
+    
+    static {
+        // Регистрация встроенных форматтеров
+        registerGoalFormatter(PrerequisiteQuestGoal.class, goal -> {
+            PrerequisiteQuestGoal prerequisiteGoal = (PrerequisiteQuestGoal) goal;
+            String format = ObjectiveFormatter.getFormatFromConfig("PREREQUISITE_QUEST");
+            return format.replace("{quest}", prerequisiteGoal.getQuestName())
+                         .replace("{target}", prerequisiteGoal.getVillagerName());
+        });
+        
+        registerGoalFormatter(MaterialGoal.class, goal -> {
+            MaterialGoal materialGoal = (MaterialGoal) goal;
+            return formatMaterialName(materialGoal.targetType());
+        });
+        
+        registerGoalFormatter(EntityTypeGoal.class, goal -> {
+            EntityTypeGoal entityGoal = (EntityTypeGoal) goal;
+            return formatEntityName(entityGoal.targetType());
+        });
+        
+        registerGoalFormatter(ItemStackGoal.class, goal -> {
+            ItemStackGoal itemStackGoal = (ItemStackGoal) goal;
+            return formatItemStackName(itemStackGoal.targetType());
+        });
+        
+        registerGoalFormatter(MovementTypeGoal.class, goal -> {
+            MovementTypeGoal movementGoal = (MovementTypeGoal) goal;
+            return formatMovementTypeGoal(movementGoal);
+        });
+        
+        registerGoalFormatter(SurvivalConditionGoal.class, goal -> {
+            SurvivalConditionGoal survivalGoal = (SurvivalConditionGoal) goal;
+            return formatSurvivalConditionGoal(survivalGoal);
+        });
+        
+        registerGoalFormatter(SubmitItemGoal.class, goal -> {
+            SubmitItemGoal submitGoal = (SubmitItemGoal) goal;
+            return formatItemStackName(submitGoal.targetType());
+        });
+    }
+    
+    /**
+     * Регистрирует кастомный форматтер для определённого типа цели
+     */
+    public static void registerGoalFormatter(Class<? extends Goal> goalClass, GoalFormatter formatter) {
+        customFormatters.put(goalClass, formatter);
+    }
 
     /**
      * Преобразует список прогрессов квеста в форматированный текстовый список.
@@ -195,80 +254,26 @@ public class QuestProgressFormatter {
         return readableName + " (" + typeName + ")";
     }
 
-    /**
-     * Получает читаемое имя цели.
-     */
     private static String formatGoalName(Goal goal, ObjectiveType type) {
-        if (goal instanceof MaterialGoal materialGoal) {
-            Material material = materialGoal.targetType();
-            return formatMaterialName(material);
-        } else if (goal instanceof EntityTypeGoal entityGoal) {
-            EntityType entityType = entityGoal.targetType();
-            return formatEntityName(entityType);
-        } else if (goal instanceof ItemStackGoal itemStackGoal) {
-            return formatItemStackName(itemStackGoal.targetType());
-        } else if (goal instanceof NumericGoal) {
-            return "Значение";
-        } else {
-            String goalStr = goal.toString();
-            if (goalStr.startsWith("EnchantWithLevel(")) {
-                return formatEnchantGoalName(goalStr);
-            }
-            return goalStr;
+        GoalFormatter customFormatter = customFormatters.get(goal.getClass());
+        if (customFormatter != null) {
+            return customFormatter.format(goal);
         }
-    }
-
-    private static String formatNumericGoal(ObjectiveType type) {
-        switch (type.key()) {
-            case "PLAYTIME" -> {
-                return Config.progressFormatter_formatPlayTimeGoal();
+        
+        if (goal instanceof NumericGoal) {
+            String format = ObjectiveFormatter.getFormatFromConfig(type.key());
+            if (format != null) {
+                return format;
             }
-            case "SURVIVAL_CONDITION" -> {
-                return Config.progressFormatter_formatSurvivalGoal();
-            }
-            case "BLOCK_SHIELD" -> {
-                return Config.progressFormatter_formatBlockShieldGoal();
-            }
-            case "CURE_VILLAGER" -> {
-                return Config.progressFormatter_formatCureVillagerGoal();
-            }
-            case "USE_TOTEM" -> {
-                return Config.progressFormatter_formatUseTotemGoal();
-            }
-            case "SHEAR_SHEEP" -> {
-                return Config.progressFormatter_formatShearSheepGoal();
-            }
-            case "TNT_BREAK_BLOCKS" -> {
-                return Config.progressFormatter_formatTntBlockBreaksGoal();
-            }
-            case "COLLECT_FROM_COMPOSTER" -> {
-                return Config.progressFormatter_formatCollectComposterGoal();
-            }
-            case "FILL_COMPOSTER" -> {
-                return  Config.progressFormatter_formatFillComposterGoal();
-            }
-            case "RESURRECT_DRAGON" -> {
-                return Config.progressFormatter_formatResurrectDragonGoal();
-            }
-            case "IGNITE_TNT" -> {
-                return Config.progressFormatter_formatIgniteTntGoal();
-            }
-            case "USE_GRINDSTONE_ITEM" -> {
-                return Config.progressFormatter_formatUseGrindstoneItemGoal();
-            }
-            case "DEATH" -> {
-                return Config.progressFormatter_formatDeathItemGoal();
-            }
-            case "MOVE" -> {
-                return Config.progressFormatter_formatMoveGoal();
-            }
-            case "EXP_CHANGE" -> {
-                return Config.progressFormatter_formatExpChangeGoal();
-            }
-            default -> {
-                return Config.progressFormatter_formatUndefinedGoal();
-            }
+            return Config.progressFormatter_formatUndefinedGoal();
         }
+        
+        String goalStr = goal.toString();
+        if (goalStr.startsWith("EnchantWithLevel(")) {
+            return formatEnchantGoalName(goalStr);
+        }
+        
+        return goalStr;
     }
 
     /**
@@ -283,19 +288,26 @@ public class QuestProgressFormatter {
                     enchantEnd = goalStr.indexOf(")", enchantStart);
                 String enchantName = goalStr.substring(enchantStart, enchantEnd);
 
-                String levelInfo = "";
+                String level = "";
                 if (goalStr.contains("level=")) {
                     int levelStart = goalStr.indexOf("level=") + 6;
                     int levelEnd = goalStr.indexOf(",", levelStart);
                     if (levelEnd == -1)
                         levelEnd = goalStr.indexOf(")", levelStart);
-                    levelInfo = " " + goalStr.substring(levelStart, levelEnd);
+                    level = goalStr.substring(levelStart, levelEnd);
                 }
 
-                return "Зачаровать " + capitalizeWords(enchantName.replace("_", " ")) + levelInfo;
+                String format = ObjectiveFormatter.getFormatFromConfig("ENCHANT_WITH_LEVEL");
+                if (format != null) {
+                    return format
+                            .replace("{item}", capitalizeWords(enchantName.replace("_", " ")))
+                            .replace("{level}", level);
+                }
+                
+                return "Зачаровать " + capitalizeWords(enchantName.replace("_", " ")) + (level.isEmpty() ? "" : " " + level);
             }
         } catch (Exception e) {
-            // Fallback to original string
+            
         }
         return goalStr;
     }
@@ -340,32 +352,6 @@ public class QuestProgressFormatter {
         }
 
         return result.toString().trim();
-    }
-
-    /**
-     * Создаёт визуальную полоску прогресса.
-     * 
-     * @param percentage процент выполнения (0-100)
-     * @param length     длина полоски в символах
-     * @return строка с полоской прогресса
-     */
-    private static String createProgressBar(double percentage, int length) {
-        int filled = (int) Math.round(percentage / 100.0 * length);
-        filled = Math.min(filled, length);
-
-        StringBuilder bar = new StringBuilder();
-        bar.append("§8[");
-
-        for (int i = 0; i < length; i++) {
-            if (i < filled) {
-                bar.append("§a█");
-            } else {
-                bar.append("§7░");
-            }
-        }
-
-        bar.append("§8]§r");
-        return bar.toString();
     }
 
     /**
@@ -415,5 +401,60 @@ public class QuestProgressFormatter {
 
     private static String formatEnchantmentName(Enchantment enchantment) {
         return capitalizeWords(TranslationUtil.translateEnchantment(enchantment));
+    }
+
+    private static String formatMovementTypeGoal(MovementTypeGoal movementGoal) {
+        MovementTypeGoal.MovementType type = movementGoal.getMovementType();
+        
+        return switch (type) {
+            case WALK -> "Пешком";
+            case FLY -> "На элитрах";
+            case BOAT -> "На лодке";
+            case HORSE -> "На лошади";
+            case PIG -> "На свинье";
+            case STRIDER -> "На страйдере";
+            case VEHICLE -> "На транспорте";
+            case ANY -> "Любым способом";
+        };
+    }
+
+    private static String formatSurvivalConditionGoal(SurvivalConditionGoal survivalGoal) {
+        StringBuilder conditions = new StringBuilder();
+        
+        PotionEffectType effect = survivalGoal.getRequiredEffect();
+        String world = survivalGoal.getRequiredWorld();
+        Biome biome = survivalGoal.getRequiredBiome();
+        
+        if (effect != null) {
+            conditions.append("С эффектом ").append(formatPotionEffectType(effect));
+        }
+        
+        if (world != null) {
+            if (!conditions.isEmpty()) conditions.append(", ");
+            conditions.append("в мире ").append(world);
+        }
+        
+        if (biome != null) {
+            if (!conditions.isEmpty()) conditions.append(", ");
+            conditions.append("в биоме ").append(formatBiomeName(biome));
+        }
+        
+        if (conditions.isEmpty()) {
+            conditions.append("Выжить");
+        }
+        
+        String format = ObjectiveFormatter.getFormatFromConfig("SURVIVAL_CONDITION");
+        if (format != null) {
+            return format.replace("{conditions}", conditions.toString());
+        }
+        
+        return conditions.toString();
+    }
+
+    /**
+     * Форматирует имя биома в читаемый вид.
+     */
+    private static String formatBiomeName(Biome biome) {
+        return capitalizeWords(biome.name().replace("_", " ").toLowerCase());
     }
 }

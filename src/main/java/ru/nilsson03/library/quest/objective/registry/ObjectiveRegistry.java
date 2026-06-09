@@ -27,6 +27,8 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerShearEntityEvent;
 
+import ru.nilsson03.library.quest.core.event.UserCompleteQuestEvent;
+import ru.nilsson03.library.quest.objective.ObjectiveFormatter;
 import ru.nilsson03.library.quest.objective.goal.registry.ObjectiveGoalFactoryRegistry;
 import ru.nilsson03.library.quest.objective.parser.ObjectiveParser;
 
@@ -36,11 +38,13 @@ public class ObjectiveRegistry {
 
     private final ObjectiveParser objectiveParser;
     private final ObjectiveGoalFactoryRegistry objectiveGoalRegistry;
+    private final ObjectiveFormatter objectiveFormatter;
 
     public ObjectiveRegistry() {
         this.objectiveGoalRegistry = new ObjectiveGoalFactoryRegistry();
         this.objectiveGoalRegistry.onRegisterInit();
         this.objectiveParser = new ObjectiveParser(this, objectiveGoalRegistry);
+        this.objectiveFormatter = new ObjectiveFormatter();
     }
 
     public void registerObjectiveType(ObjectiveType type) {
@@ -93,6 +97,9 @@ public class ObjectiveRegistry {
         registerObjectiveType(ObjectiveType.create("SUBMIT_ITEM", PlayerInteractEvent.class));
         registerObjectiveType(ObjectiveType.create("BLOCK_DAMAGE_SHIELD", EntityDamageByEntityEvent.class));
         registerObjectiveType(ObjectiveType.create("FILL_COMPOSTER", PlayerInteractEvent.class));
+        registerObjectiveType(ObjectiveType.create("PREREQUISITE_QUEST", UserCompleteQuestEvent.class));
+        
+        objectiveFormatter.onRegistryInit(this);
     }
 
     public ObjectiveParser getObjectiveParser() {
@@ -101,5 +108,9 @@ public class ObjectiveRegistry {
 
     public ObjectiveGoalFactoryRegistry getObjectiveGoalRegistry() {
         return objectiveGoalRegistry;
+    }
+
+    public ObjectiveFormatter getObjectiveFormatter() {
+        return objectiveFormatter;
     }
 }
