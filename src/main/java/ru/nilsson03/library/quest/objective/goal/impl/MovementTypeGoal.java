@@ -32,14 +32,19 @@ public class MovementTypeGoal implements ObjectiveGoal {
         return targetValue;
     }
 
+    @Override
+    public String toString() {
+        return "Movement(" + movementType.name() + "-" + targetValue + ")";
+    }
+
     public enum MovementType {
-        WALK,      // Ходьба/бег
-        FLY,       // Полёт с элитрами
-        BOAT,      // Лодка
-        HORSE,     // Лошадь, осёл, мул и т.д.
-        PIG,       // Свинья
-        STRIDER,   // Страйдер
-        VEHICLE,   // Другие транспортные средства
-        ANY        // Любой тип движения
+        WALK, // Ходьба/бег
+        FLY, // Полёт с элитрами
+        BOAT, // Лодка
+        HORSE, // Лошадь, осёл, мул и т.д.
+        PIG, // Свинья
+        STRIDER, // Страйдер
+        VEHICLE, // Другие транспортные средства
+        ANY // Любой тип движения
     }
 }

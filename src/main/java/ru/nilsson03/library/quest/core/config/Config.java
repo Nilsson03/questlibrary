@@ -1,5 +1,9 @@
 package ru.nilsson03.library.quest.core.config;
 
+import java.util.List;
+
+import org.bukkit.World;
+
 import ru.nilsson03.library.bukkit.file.configuration.BukkitConfig;
 import ru.nilsson03.library.quest.QuestLibrary;
 
@@ -19,7 +23,6 @@ public class Config {
         return getConfig().getString("settings.progress_formatter_compact_complete_format");
     }
 
-
     public static String progressFormatter_ProgressFormat() {
         return getConfig().getString("settings.progress_formatter_progress_format");
     }
@@ -30,6 +33,18 @@ public class Config {
 
     public static String progressFormatter_formatUndefinedGoal() {
         return getConfig().getString("settings.progress_formatter_goals_undefined");
+    }
+
+    public static List<String> getDisabledWorlds() {
+        return getConfig().getList("settings.disabled_worlds");
+    }
+
+    public static boolean isWorldEnabled(World world) {
+        if (world == null) {
+            return false;
+        }
+        List<String> disabledWorlds = getDisabledWorlds();
+        return !disabledWorlds.contains(world.getName());
     }
 
     public static BukkitConfig getConfig() {

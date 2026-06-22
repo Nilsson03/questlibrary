@@ -1,5 +1,9 @@
 package ru.nilsson03.library.quest.tracker;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.EntityType;
@@ -7,14 +11,11 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitRunnable;
 
+import ru.nilsson03.library.quest.core.config.Config;
 import ru.nilsson03.library.quest.objective.goal.impl.MovementTypeGoal;
 import ru.nilsson03.library.quest.objective.registry.ObjectiveRegistry;
 import ru.nilsson03.library.quest.user.data.QuestUserData;
 import ru.nilsson03.library.quest.user.storage.QuestUsersStorage;
-
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
 
 /**
  * Трекер движения игроков через таймер.
@@ -22,19 +23,19 @@ import java.util.UUID;
  * Поддерживает различные типы передвижения через систему целей.
  */
 public class MovementTracker {
-    
+
     private final Plugin plugin;
     private final QuestUsersStorage questUsersStorage;
     private final ObjectiveRegistry objectiveRegistry;
     private final Map<UUID, Location> lastLocations = new HashMap<>();
     private BukkitRunnable tracker;
-    
+
     public MovementTracker(Plugin plugin, QuestUsersStorage questUsersStorage, ObjectiveRegistry objectiveRegistry) {
         this.plugin = plugin;
         this.questUsersStorage = questUsersStorage;
         this.objectiveRegistry = objectiveRegistry;
     }
-    
+
     public void start() {
         tracker = new BukkitRunnable() {
             @Override
@@ -44,10 +45,10 @@ public class MovementTracker {
                 }
             }
         };
-        
+
         tracker.runTaskTimer(plugin, 200L, 200L);
     }
-    
+
     public void stop() {
         if (tracker != null) {
             tracker.cancel();
@@ -55,44 +56,43 @@ public class MovementTracker {
         }
         lastLocations.clear();
     }
-    
+
     private void checkPlayerMovement(Player player) {
         UUID uuid = player.getUniqueId();
         Location currentLocation = player.getLocation();
-        
+
         Location lastLocation = lastLocations.get(uuid);
-        
+
         if (lastLocation == null) {
             lastLocations.put(uuid, currentLocation.clone());
             return;
         }
-        
+
         if (!lastLocation.getWorld().equals(currentLocation.getWorld())) {
             lastLocations.put(uuid, currentLocation.clone());
             return;
         }
-        
+
         double distance = lastLocation.distance(currentLocation);
-        
-        if (distance > 0) {
+
+        if (distance > 0 && Config.isWorldEnabled(currentLocation.getWorld())) {
             QuestUserData questUserData = questUsersStorage.getQuestUserData(uuid);
-            
+
             if (questUserData != null && questUserData.hasActiveQuestWithCurrentObjectiveType(
                     objectiveRegistry.getObjectiveType("MOVE"))) {
                 MovementTypeGoal.MovementType movementType = determineMovementType(player);
                 long roundedDistance = (long) Math.round(distance);
-                
+
                 questUserData.incrementProgressQuestsWithObjectiveType(
-                    objectiveRegistry.getObjectiveType("MOVE"), 
-                    movementType, 
-                    roundedDistance
-                );
+                        objectiveRegistry.getObjectiveType("MOVE"),
+                        movementType,
+                        roundedDistance);
             }
         }
-        
+
         lastLocations.put(uuid, currentLocation.clone());
     }
-    
+
     /**
      * Определяет тип движения игрока
      */
@@ -101,31 +101,27 @@ public class MovementTracker {
             return MovementTypeGoal.MovementType.FLY;
         } else if (player.isInsideVehicle() && player.getVehicle() != null) {
             EntityType vehicleType = player.getVehicle().getType();
-            
-            if (vehicleType == EntityType.HORSE || 
-                vehicleType == EntityType.DONKEY || 
-                vehicleType == EntityType.MULE || 
-                vehicleType == EntityType.SKELETON_HORSE || 
-                vehicleType == EntityType.ZOMBIE_HORSE) {
+
+            if (vehicleType == EntityType.HORSE ||
+                    vehicleType == EntityType.DONKEY ||
+                    vehicleType == EntityType.MULE ||
+                    vehicleType == EntityType.SKELETON_HORSE ||
+                    vehicleType == EntityType.ZOMBIE_HORSE) {
                 return MovementTypeGoal.MovementType.HORSE;
-            }
-            else if (vehicleType == EntityType.BOAT || vehicleType.name().contains("BOAT")) {
+            } else if (vehicleType == EntityType.BOAT || vehicleType.name().contains("BOAT")) {
                 return MovementTypeGoal.MovementType.BOAT;
-            }
-            else if (vehicleType == EntityType.PIG) {
+            } else if (vehicleType == EntityType.PIG) {
                 return MovementTypeGoal.MovementType.PIG;
-            }
-            else if (vehicleType.name().equals("STRIDER")) {
+            } else if (vehicleType.name().equals("STRIDER")) {
                 return MovementTypeGoal.MovementType.STRIDER;
-            }
-            else {
+            } else {
                 return MovementTypeGoal.MovementType.VEHICLE;
             }
         } else {
             return MovementTypeGoal.MovementType.WALK;
         }
     }
-    
+
     public void removePlayer(UUID uuid) {
         lastLocations.remove(uuid);
     }

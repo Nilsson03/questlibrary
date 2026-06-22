@@ -1,21 +1,22 @@
 package ru.nilsson03.library.quest.tracker;
 
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+
 import org.bukkit.Bukkit;
 import org.bukkit.Statistic;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitTask;
-import ru.nilsson03.library.bukkit.util.log.ConsoleLogger;
+
+import ru.nilsson03.library.quest.core.config.Config;
 import ru.nilsson03.library.quest.objective.progress.QuestProgress;
 import ru.nilsson03.library.quest.objective.registry.ObjectiveType;
 import ru.nilsson03.library.quest.quest.simple.BaseQuest;
 import ru.nilsson03.library.quest.user.data.QuestUserData;
 import ru.nilsson03.library.quest.user.storage.QuestUsersStorage;
-
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
 
 public class PlaytimeObjectiveTracker {
 
@@ -33,8 +34,8 @@ public class PlaytimeObjectiveTracker {
     private BukkitTask asyncTask;
 
     public PlaytimeObjectiveTracker(JavaPlugin plugin,
-                                    QuestUsersStorage questUsersStorage,
-                                    ObjectiveType playtimeObjectiveType) {
+            QuestUsersStorage questUsersStorage,
+            ObjectiveType playtimeObjectiveType) {
         this.plugin = plugin;
         this.questUsersStorage = questUsersStorage;
         this.playtimeObjectiveType = playtimeObjectiveType;
@@ -49,8 +50,7 @@ public class PlaytimeObjectiveTracker {
                 plugin,
                 this::processPlaytime,
                 UPDATE_INTERVAL_TICKS,
-                UPDATE_INTERVAL_TICKS
-        );
+                UPDATE_INTERVAL_TICKS);
     }
 
     public void stop() {
@@ -65,6 +65,10 @@ public class PlaytimeObjectiveTracker {
 
     private void processPlaytime() {
         for (Player player : Bukkit.getOnlinePlayers()) {
+            if (!Config.isWorldEnabled(player.getWorld())) {
+                continue;
+            }
+
             UUID uuid = player.getUniqueId();
 
             QuestUserData questUserData = questUsersStorage.getQuestUserData(uuid);
@@ -72,8 +76,9 @@ public class PlaytimeObjectiveTracker {
                 continue;
             }
 
-            Collection<QuestProgress> activePlaytimeProgress = questUserData.getProgressByObjectiveType(playtimeObjectiveType);
-            
+            Collection<QuestProgress> activePlaytimeProgress = questUserData
+                    .getProgressByObjectiveType(playtimeObjectiveType);
+
             if (activePlaytimeProgress.isEmpty()) {
                 questStartTicks.remove(uuid);
                 lastKnownTicks.remove(uuid);
@@ -97,9 +102,8 @@ public class PlaytimeObjectiveTracker {
             playerQuestStarts.putIfAbsent(quest, currentTicks);
         }
 
-        playerQuestStarts.keySet().removeIf(quest ->
-                activePlaytimeProgress.stream().map(QuestProgress::quest).noneMatch(activeQuest -> activeQuest.equals(quest))
-        );
+        playerQuestStarts.keySet().removeIf(quest -> activePlaytimeProgress.stream().map(QuestProgress::quest)
+                .noneMatch(activeQuest -> activeQuest.equals(quest)));
     }
 
     private void updatePlayerPlaytime(QuestUserData questUserData, UUID uuid, int currentTicks) {

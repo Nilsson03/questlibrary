@@ -1,23 +1,32 @@
 package ru.nilsson03.library.quest.handler.handlers.impl;
 
+import java.util.function.BiConsumer;
+
 import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.enchantment.EnchantItemEvent;
-import org.bukkit.event.entity.*;
+import org.bukkit.event.entity.EntityBreedEvent;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntityDeathEvent;
+import org.bukkit.event.entity.EntityExplodeEvent;
+import org.bukkit.event.entity.EntityResurrectEvent;
+import org.bukkit.event.entity.EntityTameEvent;
+import org.bukkit.event.entity.EntityTransformEvent;
 import org.bukkit.event.inventory.CraftItemEvent;
 import org.bukkit.event.inventory.FurnaceExtractEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.PlayerEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerShearEntityEvent;
+import java.util.UUID;
+
+import ru.nilsson03.library.quest.core.config.Config;
 import ru.nilsson03.library.quest.handler.handlers.QuestEventHandler;
 import ru.nilsson03.library.quest.user.data.QuestUserData;
 import ru.nilsson03.library.quest.user.storage.QuestUsersStorage;
-
-import java.util.function.BiConsumer;
 
 /**
  * Универсальный обработчик событий
@@ -43,6 +52,10 @@ public class UniversalQuestEventHandler<T extends Event> implements QuestEventHa
     public void handle(T event) {
         Player player = getPlayerFromEvent(event);
         if (player == null) {
+            return;
+        }
+
+        if (!Config.isWorldEnabled(player.getWorld())) {
             return;
         }
 
@@ -108,10 +121,10 @@ public class UniversalQuestEventHandler<T extends Event> implements QuestEventHa
                 try {
                     NamespacedKey key = new NamespacedKey("questlibrary", "transform_player");
                     String playerUuidStr = entityTransformEvent.getEntity().getPersistentDataContainer()
-                        .get(key, org.bukkit.persistence.PersistentDataType.STRING);
-                    
+                            .get(key, org.bukkit.persistence.PersistentDataType.STRING);
+
                     if (playerUuidStr != null) {
-                        java.util.UUID playerUuid = java.util.UUID.fromString(playerUuidStr);
+                        UUID playerUuid = UUID.fromString(playerUuidStr);
                         return org.bukkit.Bukkit.getPlayer(playerUuid);
                     }
                 } catch (Exception e) {

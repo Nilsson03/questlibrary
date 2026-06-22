@@ -1,19 +1,21 @@
 package ru.nilsson03.library.quest.tracker;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.scheduler.BukkitRunnable;
+
 import ru.nilsson03.library.bukkit.util.log.ConsoleLogger;
+import ru.nilsson03.library.quest.core.config.Config;
 import ru.nilsson03.library.quest.objective.goal.impl.SurvivalConditionGoal;
 import ru.nilsson03.library.quest.objective.registry.ObjectiveType;
 import ru.nilsson03.library.quest.user.data.QuestUserData;
 import ru.nilsson03.library.quest.user.storage.QuestUsersStorage;
-
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
 
 public class SurvivalConditionTracker {
 
@@ -38,11 +40,15 @@ public class SurvivalConditionTracker {
                 }
             }
         };
-        
+
         tracker.runTaskTimer(plugin, 20L, 20L);
     }
-    
+
     private void checkPlayerSurvivalConditions(Player player) {
+        if (!Config.isWorldEnabled(player.getWorld())) {
+            return;
+        }
+
         UUID playerId = player.getUniqueId();
         QuestUserData userData = questUsersStorage.getQuestUserData(playerId);
 
@@ -53,10 +59,10 @@ public class SurvivalConditionTracker {
 
         long currentTime = System.currentTimeMillis();
         Long lastCheck = lastCheckTime.get(playerId);
-        
+
         if (lastCheck == null) {
-            ConsoleLogger.info(plugin.getName(), 
-                "SurvivalConditionTracker: First check for player %s", player.getName());
+            ConsoleLogger.info(plugin.getName(),
+                    "SurvivalConditionTracker: First check for player %s", player.getName());
             lastCheckTime.put(playerId, currentTime);
             return;
         }
@@ -67,23 +73,21 @@ public class SurvivalConditionTracker {
         }
 
         int effectCount = player.getActivePotionEffects().size();
-        
+
         if (effectCount > 0) {
             for (PotionEffect effect : player.getActivePotionEffects()) {
                 SurvivalConditionGoal.SurvivalData survivalData = new SurvivalConditionGoal.SurvivalData(
-                    effect.getType(),
-                    player.getWorld().getName(),
-                    player.getLocation().getBlock().getBiome()
-                );
+                        effect.getType(),
+                        player.getWorld().getName(),
+                        player.getLocation().getBlock().getBiome());
 
                 userData.incrementProgressQuestsWithObjectiveType(objectiveType, survivalData, elapsedSeconds);
             }
         } else {
             SurvivalConditionGoal.SurvivalData survivalData = new SurvivalConditionGoal.SurvivalData(
-                null,
-                player.getWorld().getName(),
-                player.getLocation().getBlock().getBiome()
-            );
+                    null,
+                    player.getWorld().getName(),
+                    player.getLocation().getBlock().getBiome());
 
             userData.incrementProgressQuestsWithObjectiveType(objectiveType, survivalData, elapsedSeconds);
         }

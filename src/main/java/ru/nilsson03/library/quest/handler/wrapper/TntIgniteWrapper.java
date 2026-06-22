@@ -20,6 +20,7 @@ import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.Plugin;
 
 import ru.nilsson03.library.bukkit.util.log.ConsoleLogger;
+import ru.nilsson03.library.quest.core.config.Config;
 import ru.nilsson03.library.quest.handler.QuestEventManager;
 import ru.nilsson03.library.quest.handler.handlers.QuestEventHandler;
 import ru.nilsson03.library.quest.handler.handlers.impl.UniversalQuestEventHandler;
@@ -68,6 +69,10 @@ public class TntIgniteWrapper {
                 try {
                     Object igniter = event.getClass().getMethod("getIgniter").invoke(event);
                     if (igniter instanceof Player player) {
+                        if (!Config.isWorldEnabled(player.getWorld())) {
+                            return;
+                        }
+                        
                         var questUserData = questUsersStorage.getQuestUserData(player.getUniqueId());
                         
                         if (questUserData != null) {

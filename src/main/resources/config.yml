@@ -1,6 +1,10 @@
 writeLogs: true
 
 settings:
+  # Список миров, в которых не будет прогресса квестов
+  disabled_worlds:
+    - "world_nether_example"
+    - "world_the_end_example"
   # Сообщение о получении прогресса
   quest_progress: "actionbar:&8[&e!&8] &7Прогресс &e{quest} &a+{progress}&7/&e{required}"
   # Форматы прогресса
