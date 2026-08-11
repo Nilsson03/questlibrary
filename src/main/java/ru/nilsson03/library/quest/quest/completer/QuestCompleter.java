@@ -4,7 +4,6 @@ import java.util.function.Consumer;
 
 import ru.nilsson03.library.quest.quest.simple.BaseQuest;
 import ru.nilsson03.library.quest.user.data.QuestUserData;
-import ru.nilsson03.library.quest.user.data.impl.QuestUserReceiptsRewardsData;
 
 public interface QuestCompleter {
 
@@ -17,10 +16,5 @@ public interface QuestCompleter {
 
         quest.rewards()
                 .executeCommands(user);
-
-        if (user.hasActiveReceiptsRewardsData()) {
-            QuestUserReceiptsRewardsData questUserReceiptsRewardsData = user.getReceiptsRewardsData();
-            questUserReceiptsRewardsData.takeReward(quest.rewards());
-        }
     }
 }

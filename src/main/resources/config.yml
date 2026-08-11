@@ -1,4 +1,4 @@
-writeLogs: true
+writeLogs: false
 
 settings:
   # Список миров, в которых не будет прогресса квестов

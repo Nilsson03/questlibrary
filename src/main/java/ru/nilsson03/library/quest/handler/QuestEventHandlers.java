@@ -47,6 +47,7 @@ import ru.nilsson03.library.quest.handler.handlers.QuestEventHandler;
 import ru.nilsson03.library.quest.handler.handlers.impl.UniversalQuestEventHandler;
 import ru.nilsson03.library.quest.handler.wrapper.TntIgniteWrapper;
 import ru.nilsson03.library.quest.objective.registry.ObjectiveRegistry;
+import ru.nilsson03.library.quest.core.progress.ProgressTargetResolver;
 import ru.nilsson03.library.quest.user.data.QuestUserData;
 import ru.nilsson03.library.quest.user.storage.QuestUsersStorage;
 
@@ -58,39 +59,46 @@ public class QuestEventHandlers {
     private final QuestEventManager eventManager;
     private final QuestUsersStorage questUsersStorage;
     private final ObjectiveRegistry objectiveRegistry;
+    private final ProgressTargetResolver progressTargetResolver;
 
     public QuestEventHandlers(
             QuestEventManager eventManager, QuestUsersStorage questUsersStorage,
             ObjectiveRegistry objectiveRegistry) {
+        this(eventManager, questUsersStorage, objectiveRegistry, ProgressTargetResolver.identity(questUsersStorage));
+    }
+
+    public QuestEventHandlers(
+            QuestEventManager eventManager, QuestUsersStorage questUsersStorage,
+            ObjectiveRegistry objectiveRegistry, ProgressTargetResolver progressTargetResolver) {
         this.eventManager = eventManager;
         this.questUsersStorage = questUsersStorage;
         this.objectiveRegistry = objectiveRegistry;
+        this.progressTargetResolver = progressTargetResolver != null
+                ? progressTargetResolver
+                : ProgressTargetResolver.identity(questUsersStorage);
+    }
+
+    private <T extends org.bukkit.event.Event> UniversalQuestEventHandler<T> universal(
+            UniversalQuestEventHandler.QuestEventProgressLogic<T> logic) {
+        return new UniversalQuestEventHandler<>(progressTargetResolver, logic);
     }
 
     protected void registerHandlers() {
 
-        QuestEventHandler<PlayerExpChangeEvent> expChangeHandler = new UniversalQuestEventHandler<>(questUsersStorage,
-                (event, questUserData) -> {
+        QuestEventHandler<PlayerExpChangeEvent> expChangeHandler = universal((event, actor, questUserData) -> {
                     int amount = event.getAmount();
-                    questUserData.incrementProgressQuestsWithValueGoals(
-                            objectiveRegistry.getObjectiveType(
-                                    "EXP_CHANGE"),
-                            amount);
+                    questUserData.incrementProgressQuestsWithValueGoals(objectiveRegistry.getObjectiveType(
+                                    "EXP_CHANGE"), amount, actor);
                 });
 
-        QuestEventHandler<BlockBreakEvent> blockBreakHandler = new UniversalQuestEventHandler<>(questUsersStorage,
-                (event, questUserData) -> {
+        QuestEventHandler<BlockBreakEvent> blockBreakHandler = universal((event, actor, questUserData) -> {
                     Material blockType = event.getBlock()
                             .getType();
-                    questUserData.incrementProgressQuestsWithObjectiveType(
-                            objectiveRegistry.getObjectiveType(
-                                    "BREAK_BLOCK"),
-                            blockType,
-                            1);
+                    questUserData.incrementProgressQuestsWithObjectiveType(objectiveRegistry.getObjectiveType(
+                                    "BREAK_BLOCK"), blockType, 1, actor);
                 });
 
-        QuestEventHandler<PlayerInteractEntityEvent> transformEntityTrackerHandler = new UniversalQuestEventHandler<>(
-                questUsersStorage, (event, questUserData) -> {
+        QuestEventHandler<PlayerInteractEntityEvent> transformEntityTrackerHandler = universal((event, actor, questUserData) -> {
                     Entity entity = event.getRightClicked();
                     ItemStack item = event.getPlayer().getInventory().getItem(event.getHand());
 
@@ -116,13 +124,17 @@ public class QuestEventHandlers {
                 if (playerUuidString != null) {
                     try {
                         java.util.UUID playerUuid = java.util.UUID.fromString(playerUuidString);
-                        QuestUserData questUserData = questUsersStorage.getQuestUserData(playerUuid);
+                        Player actor = org.bukkit.Bukkit.getPlayer(playerUuid);
+                        if (actor == null) {
+                            return;
+                        }
+                        QuestUserData questUserData = progressTargetResolver.resolve(actor);
 
                         if (questUserData != null && questUserData.hasActiveQuestWithCurrentObjectiveType(
                                 objectiveRegistry.getObjectiveType("TRANSFORM_ENTITY"))) {
                             questUserData.incrementProgressQuestsWithObjectiveType(
                                     objectiveRegistry.getObjectiveType("TRANSFORM_ENTITY"),
-                                    transformedType, 1);
+                                    transformedType, 1, actor);
                         }
                     } catch (IllegalArgumentException ignored) {
                     }
@@ -130,23 +142,20 @@ public class QuestEventHandlers {
             }
         };
 
-        QuestEventHandler<EntityDamageByEntityEvent> blockSchieldEventHandler = new UniversalQuestEventHandler<>(
-                questUsersStorage, (event, questUserData) -> {
+        QuestEventHandler<EntityDamageByEntityEvent> blockSchieldEventHandler = universal((event, actor, questUserData) -> {
                     if (questUserData != null && questUserData.hasActiveQuestWithCurrentObjectiveType(
                             objectiveRegistry.getObjectiveType("BLOCK_DAMAGE_SHIELD"))) {
                         Entity entity = event.getEntity();
                         if (entity instanceof Player player) {
                             if (player.isBlocking()) {
                                 int damage = (int) event.getDamage();
-                                questUserData.incrementProgressQuestsWithValueGoals(
-                                        objectiveRegistry.getObjectiveType("BLOCK_DAMAGE_SHIELD"), damage);
+                                questUserData.incrementProgressQuestsWithValueGoals(objectiveRegistry.getObjectiveType("BLOCK_DAMAGE_SHIELD"), damage, actor);
                             }
                         }
                     }
                 });
 
-        QuestEventHandler<CraftItemEvent> craftItemEventQuestEventHandler = new UniversalQuestEventHandler<>(
-                questUsersStorage, (event, questUserData) -> {
+        QuestEventHandler<CraftItemEvent> craftItemEventQuestEventHandler = universal((event, actor, questUserData) -> {
                     ItemStack itemStack = event.getCurrentItem();
                     if (itemStack == null)
                         return;
@@ -160,97 +169,70 @@ public class QuestEventHandlers {
                         amount = itemStack.getAmount();
                     }
 
-                    questUserData.incrementProgressQuestsWithObjectiveType(
-                            objectiveRegistry.getObjectiveType("CRAFT_ITEM"),
-                            material, amount);
+                    questUserData.incrementProgressQuestsWithObjectiveType(objectiveRegistry.getObjectiveType("CRAFT_ITEM"), material, amount, actor);
                 });
 
-        QuestEventHandler<BlockPlaceEvent> blockPlaceEventQuestEventHandler = new UniversalQuestEventHandler<>(
-                questUsersStorage, (event, questUserData) -> {
+        QuestEventHandler<BlockPlaceEvent> blockPlaceEventQuestEventHandler = universal((event, actor, questUserData) -> {
                     Material type = event.getBlock()
                             .getType();
-                    questUserData.incrementProgressQuestsWithObjectiveType(
-                            objectiveRegistry.getObjectiveType("BLOCK_PLACE"),
-                            type, 1);
+                    questUserData.incrementProgressQuestsWithObjectiveType(objectiveRegistry.getObjectiveType("BLOCK_PLACE"), type, 1, actor);
                 });
 
-        QuestEventHandler<EntityTameEvent> entityTameEventQuestEventHandler = new UniversalQuestEventHandler<>(
-                questUsersStorage, (event, questUserData) -> {
+        QuestEventHandler<EntityTameEvent> entityTameEventQuestEventHandler = universal((event, actor, questUserData) -> {
                     EntityType entityType = event.getEntityType();
-                    questUserData.incrementProgressQuestsWithObjectiveType(
-                            objectiveRegistry.getObjectiveType("TAME_ENTITY"),
-                            entityType, 1);
+                    questUserData.incrementProgressQuestsWithObjectiveType(objectiveRegistry.getObjectiveType("TAME_ENTITY"), entityType, 1, actor);
                 });
 
-        QuestEventHandler<PlayerItemBreakEvent> playerItemBreakEventQuestEventHandler = new UniversalQuestEventHandler<>(
-                questUsersStorage, (event, questUserData) -> {
+        QuestEventHandler<PlayerItemBreakEvent> playerItemBreakEventQuestEventHandler = universal((event, actor, questUserData) -> {
                     Material material = event.getBrokenItem().getType();
-                    questUserData.incrementProgressQuestsWithObjectiveType(
-                            objectiveRegistry.getObjectiveType("ITEM_DESTROY"),
-                            material, 1);
+                    questUserData.incrementProgressQuestsWithObjectiveType(objectiveRegistry.getObjectiveType("ITEM_DESTROY"), material, 1, actor);
                 });
 
-        QuestEventHandler<InventoryClickEvent> inventoryClickEventQuestEventHandlerAnvil = new UniversalQuestEventHandler<>(
-                questUsersStorage, (event, questUserData) -> {
+        QuestEventHandler<InventoryClickEvent> inventoryClickEventQuestEventHandlerAnvil = universal((event, actor, questUserData) -> {
                     Inventory inventory = event.getInventory();
                     if (inventory.getType() == InventoryType.ANVIL
                             && event.getSlotType() == InventoryType.SlotType.RESULT) {
-                        questUserData.incrementProgressQuestsWithValueGoals(objectiveRegistry.getObjectiveType("ANVIL"),
-                                1);
+                        questUserData.incrementProgressQuestsWithValueGoals(objectiveRegistry.getObjectiveType("ANVIL"), 1, actor);
                     }
                 });
 
-        QuestEventHandler<FurnaceExtractEvent> furnaceExtractEventQuestEventHandler = new UniversalQuestEventHandler<>(
-                questUsersStorage, (event, questUserData) -> {
+        QuestEventHandler<FurnaceExtractEvent> furnaceExtractEventQuestEventHandler = universal((event, actor, questUserData) -> {
                     Material material = event.getItemType();
                     int amount = event.getItemAmount();
-                    questUserData.incrementProgressQuestsWithObjectiveType(
-                            objectiveRegistry.getObjectiveType("SMELT_ITEM"),
-                            material, amount);
+                    questUserData.incrementProgressQuestsWithObjectiveType(objectiveRegistry.getObjectiveType("SMELT_ITEM"), material, amount, actor);
                 });
 
-        QuestEventHandler<EnchantItemEvent> enchantItemEventQuestEventHandler = new UniversalQuestEventHandler<>(
-                questUsersStorage, (event, questUserData) -> {
-                    questUserData.incrementProgressQuestsWithValueGoals(objectiveRegistry.getObjectiveType("ENCHANT"),
-                            1);
+        QuestEventHandler<EnchantItemEvent> enchantItemEventQuestEventHandler = universal((event, actor, questUserData) -> {
+                    questUserData.incrementProgressQuestsWithValueGoals(objectiveRegistry.getObjectiveType("ENCHANT"), 1, actor);
                 });
 
-        QuestEventHandler<InventoryClickEvent> villagerTradeEventQuestEventHandler = new UniversalQuestEventHandler<>(
-                questUsersStorage, (event, questUserData) -> {
+        QuestEventHandler<InventoryClickEvent> villagerTradeEventQuestEventHandler = universal((event, actor, questUserData) -> {
                     if (event.getInventory().getType() == InventoryType.MERCHANT
                             && event.getSlotType() == InventoryType.SlotType.RESULT
                             && event.getCurrentItem() != null
                             && !event.getCurrentItem().getType().isAir()) {
-                        questUserData.incrementProgressQuestsWithValueGoals(
-                                objectiveRegistry.getObjectiveType("TRADE_VILLAGER"),
-                                1);
+                        questUserData.incrementProgressQuestsWithValueGoals(objectiveRegistry.getObjectiveType("TRADE_VILLAGER"), 1, actor);
                     }
                 });
 
-        QuestEventHandler<PlayerItemConsumeEvent> playerItemConsumeEventQuestEventHandlerDrinkPotion = new UniversalQuestEventHandler<>(
-                questUsersStorage, (event, questUserData) -> {
+        QuestEventHandler<PlayerItemConsumeEvent> playerItemConsumeEventQuestEventHandlerDrinkPotion = universal((event, actor, questUserData) -> {
                     ItemStack itemStack = event.getItem().clone();
 
                     if (QuestEventHandlersUtil.isDrink(itemStack.getType())) {
-                        questUserData.incrementProgressQuestsWithObjectiveType(
-                                objectiveRegistry.getObjectiveType("DRINK_POTION"), itemStack, 1);
+                        questUserData.incrementProgressQuestsWithObjectiveType(objectiveRegistry.getObjectiveType("DRINK_POTION"), itemStack, 1, actor);
                     }
                 });
 
-        QuestEventHandler<PlayerItemConsumeEvent> playerItemConsumeEventQuestEventHandlerEat = new UniversalQuestEventHandler<>(
-                questUsersStorage, (event, questUserData) -> {
+        QuestEventHandler<PlayerItemConsumeEvent> playerItemConsumeEventQuestEventHandlerEat = universal((event, actor, questUserData) -> {
                     ItemStack itemStack = event.getItem();
                     Material material = itemStack.getType();
 
                     if (material.isEdible() && !QuestEventHandlersUtil.isDrink(material)) {
-                        questUserData.incrementProgressQuestsWithObjectiveType(
-                                objectiveRegistry.getObjectiveType("EAT_ITEM"),
-                                material, 1);
+                        questUserData.incrementProgressQuestsWithObjectiveType(objectiveRegistry.getObjectiveType("EAT_ITEM"), material, 1, actor);
                     }
                 });
 
-        QuestEventHandler<PlayerFishEvent> playerFishEventQuestEventHandler = new UniversalQuestEventHandler<>(
-                questUsersStorage, (event, questUserData) -> {
+        QuestEventHandler<PlayerFishEvent> playerFishEventQuestEventHandler = universal((event, actor, questUserData) -> {
                     if (event.getCaught() != null && event.getState() == PlayerFishEvent.State.CAUGHT_FISH) {
                         if (event.getCaught() instanceof Item item) {
                             ItemStack itemStack = item.getItemStack();
@@ -259,70 +241,53 @@ public class QuestEventHandlers {
                                     type == Material.SALMON ||
                                     type == Material.TROPICAL_FISH ||
                                     type == Material.PUFFERFISH) {
-                                questUserData.incrementProgressQuestsWithValueGoals(
-                                        objectiveRegistry.getObjectiveType("CATCH_FISH"),
-                                        itemStack.getAmount());
+                                questUserData.incrementProgressQuestsWithValueGoals(objectiveRegistry.getObjectiveType("CATCH_FISH"), itemStack.getAmount(), actor);
                             }
                         }
                     }
                 });
 
-        QuestEventHandler<EntityDeathEvent> entityDeathEventQuestEventHandlerKillEntity = new UniversalQuestEventHandler<>(
-                questUsersStorage, (event, questUserData) -> {
+        QuestEventHandler<EntityDeathEvent> entityDeathEventQuestEventHandlerKillEntity = universal((event, actor, questUserData) -> {
                     EntityType entityType = event.getEntityType();
-                    questUserData.incrementProgressQuestsWithObjectiveType(
-                            objectiveRegistry.getObjectiveType("KILL_ENTITY"),
-                            entityType, 1);
+                    questUserData.incrementProgressQuestsWithObjectiveType(objectiveRegistry.getObjectiveType("KILL_ENTITY"), entityType, 1, actor);
                 });
 
-        QuestEventHandler<EntityDeathEvent> entityDeathEventQuestEventHandlerDeath = new UniversalQuestEventHandler<>(
-                questUsersStorage, (event, questUserData) -> {
-                    questUserData.incrementProgressQuestsWithValueGoals(objectiveRegistry.getObjectiveType("DEATH"), 1);
+        QuestEventHandler<EntityDeathEvent> entityDeathEventQuestEventHandlerDeath = universal((event, actor, questUserData) -> {
+                    questUserData.incrementProgressQuestsWithValueGoals(objectiveRegistry.getObjectiveType("DEATH"), 1, actor);
                 });
 
-        QuestEventHandler<EntityDamageByEntityEvent> blockShieldHandler = new UniversalQuestEventHandler<>(
-                questUsersStorage, (event, questUserData) -> {
+        QuestEventHandler<EntityDamageByEntityEvent> blockShieldHandler = universal((event, actor, questUserData) -> {
                     if (event.getEntity() instanceof Player defender) {
                         if (defender.isBlocking()) {
-                            questUserData.incrementProgressQuestsWithValueGoals(
-                                    objectiveRegistry.getObjectiveType("BLOCK_SHIELD"), 1);
+                            questUserData.incrementProgressQuestsWithValueGoals(objectiveRegistry.getObjectiveType("BLOCK_SHIELD"), 1, actor);
                         }
                     }
                 });
 
-        QuestEventHandler<EntityBreedEvent> breedEntityHandler = new UniversalQuestEventHandler<>(
-                questUsersStorage, (event, questUserData) -> {
+        QuestEventHandler<EntityBreedEvent> breedEntityHandler = universal((event, actor, questUserData) -> {
                     EntityType entityType = event.getEntityType();
-                    questUserData.incrementProgressQuestsWithObjectiveType(
-                            objectiveRegistry.getObjectiveType("BREED_ENTITY"), entityType, 1);
+                    questUserData.incrementProgressQuestsWithObjectiveType(objectiveRegistry.getObjectiveType("BREED_ENTITY"), entityType, 1, actor);
                 });
 
-        QuestEventHandler<EntityTransformEvent> cureVillagerHandler = new UniversalQuestEventHandler<>(
-                questUsersStorage, (event, questUserData) -> {
+        QuestEventHandler<EntityTransformEvent> cureVillagerHandler = universal((event, actor, questUserData) -> {
                     if (event.getTransformReason() == EntityTransformEvent.TransformReason.CURED) {
                         if (event.getEntityType() == EntityType.ZOMBIE_VILLAGER) {
-                            questUserData.incrementProgressQuestsWithValueGoals(
-                                    objectiveRegistry.getObjectiveType("CURE_VILLAGER"), 1);
+                            questUserData.incrementProgressQuestsWithValueGoals(objectiveRegistry.getObjectiveType("CURE_VILLAGER"), 1, actor);
                         }
                     }
                 });
 
-        QuestEventHandler<EntityResurrectEvent> useTotemHandler = new UniversalQuestEventHandler<>(
-                questUsersStorage, (event, questUserData) -> {
+        QuestEventHandler<EntityResurrectEvent> useTotemHandler = universal((event, actor, questUserData) -> {
                     if (event.getEntity() instanceof Player) {
-                        questUserData.incrementProgressQuestsWithValueGoals(
-                                objectiveRegistry.getObjectiveType("USE_TOTEM"), 1);
+                        questUserData.incrementProgressQuestsWithValueGoals(objectiveRegistry.getObjectiveType("USE_TOTEM"), 1, actor);
                     }
                 });
 
-        QuestEventHandler<PlayerShearEntityEvent> shearSheepHandler = new UniversalQuestEventHandler<>(
-                questUsersStorage, (event, questUserData) -> {
-                    questUserData.incrementProgressQuestsWithValueGoals(
-                            objectiveRegistry.getObjectiveType("SHEAR_SHEEP"), 1);
+        QuestEventHandler<PlayerShearEntityEvent> shearSheepHandler = universal((event, actor, questUserData) -> {
+                    questUserData.incrementProgressQuestsWithValueGoals(objectiveRegistry.getObjectiveType("SHEAR_SHEEP"), 1, actor);
                 });
 
-        QuestEventHandler<PlayerInteractEvent> fillComposterHandler = new UniversalQuestEventHandler<>(
-                questUsersStorage, (event, questUserData) -> {
+        QuestEventHandler<PlayerInteractEvent> fillComposterHandler = universal((event, actor, questUserData) -> {
                     if (event.getHand() == null || event.getHand() != EquipmentSlot.HAND)
                         return;
                     if (event.getAction() != Action.RIGHT_CLICK_BLOCK)
@@ -349,8 +314,7 @@ public class QuestEventHandlers {
                                             ConsoleLogger.info(eventManager.getPlugin().getName(), 
                                                 "Composter level increased from %d to %d, incrementing FILL_COMPOSTER progress", 
                                                 levelBefore, levelAfter);
-                                            questUserData.incrementProgressQuestsWithValueGoals(
-                                                    objectiveRegistry.getObjectiveType("FILL_COMPOSTER"), 1);
+                                            questUserData.incrementProgressQuestsWithValueGoals(objectiveRegistry.getObjectiveType("FILL_COMPOSTER"), 1, actor);
                                         } else {
                                             ConsoleLogger.warn(eventManager.getPlugin().getName(), 
                                                 "Composter level did not increase (still %d), item was not accepted", levelAfter);
@@ -365,32 +329,27 @@ public class QuestEventHandlers {
                     }
                 });
 
-        QuestEventHandler<EnchantItemEvent> enchantWithLevelHandler = new UniversalQuestEventHandler<>(
-                questUsersStorage, (event, questUserData) -> {
+        QuestEventHandler<EnchantItemEvent> enchantWithLevelHandler = universal((event, actor, questUserData) -> {
                     ItemStack enchantedItem = event.getItem();
                     if (enchantedItem != null) {
-                        questUserData.incrementProgressQuestsWithObjectiveType(
-                                objectiveRegistry.getObjectiveType("ENCHANT_WITH_LEVEL"), enchantedItem, 1);
+                        questUserData.incrementProgressQuestsWithObjectiveType(objectiveRegistry.getObjectiveType("ENCHANT_WITH_LEVEL"), enchantedItem, 1, actor);
                     }
                 });
 
-        QuestEventHandler<InventoryClickEvent> anvilEnchantHandler = new UniversalQuestEventHandler<>(
-                questUsersStorage, (event, questUserData) -> {
+        QuestEventHandler<InventoryClickEvent> anvilEnchantHandler = universal((event, actor, questUserData) -> {
                     if (event.getInventory().getType() == InventoryType.ANVIL) {
                         if (event.getSlotType() == InventoryType.SlotType.RESULT &&
                                 event.getCurrentItem() != null &&
                                 event.getCurrentItem().getType() != Material.AIR) {
                             ItemStack result = event.getCurrentItem();
                             if (!result.getEnchantments().isEmpty()) {
-                                questUserData.incrementProgressQuestsWithObjectiveType(
-                                        objectiveRegistry.getObjectiveType("ENCHANT_WITH_LEVEL"), result, 1);
+                                questUserData.incrementProgressQuestsWithObjectiveType(objectiveRegistry.getObjectiveType("ENCHANT_WITH_LEVEL"), result, 1, actor);
                             }
                         }
                     }
                 });
 
-        QuestEventHandler<PlayerInteractEvent> collectFromComposterHandler = new UniversalQuestEventHandler<>(
-                questUsersStorage, (event, questUserData) -> {
+        QuestEventHandler<PlayerInteractEvent> collectFromComposterHandler = universal((event, actor, questUserData) -> {
                     if (event.getHand() == null || event.getHand() != EquipmentSlot.HAND)
                         return;
                     if (event.getAction() != Action.RIGHT_CLICK_BLOCK)
@@ -408,8 +367,7 @@ public class QuestEventHandlers {
                         if (level == 8) {
                             ConsoleLogger.info(eventManager.getPlugin().getName(), 
                                 "Composter is full (level 8), incrementing COLLECT_FROM_COMPOSTER progress");
-                            questUserData.incrementProgressQuestsWithValueGoals(
-                                    objectiveRegistry.getObjectiveType("COLLECT_FROM_COMPOSTER"), 1);
+                            questUserData.incrementProgressQuestsWithValueGoals(objectiveRegistry.getObjectiveType("COLLECT_FROM_COMPOSTER"), 1, actor);
                         } else {
                             ConsoleLogger.info(eventManager.getPlugin().getName(), 
                                 "Composter is not full (level %d), skipping COLLECT_FROM_COMPOSTER progress", level);
@@ -417,8 +375,7 @@ public class QuestEventHandlers {
                     }
                 });
 
-        QuestEventHandler<BlockPlaceEvent> dragonResurrectHandler = new UniversalQuestEventHandler<>(
-                questUsersStorage, (event, questUserData) -> {
+        QuestEventHandler<BlockPlaceEvent> dragonResurrectHandler = universal((event, actor, questUserData) -> {
                     Block placedBlock = event.getBlockPlaced();
 
                     if (placedBlock.getType() != Material.END_CRYSTAL) {
@@ -448,8 +405,7 @@ public class QuestEventHandlers {
                             "All 4 End Crystals placed! Player %s resurrected the dragon", 
                             event.getPlayer().getName());
                         
-                        questUserData.incrementProgressQuestsWithValueGoals(
-                                objectiveRegistry.getObjectiveType("RESURRECT_DRAGON"), 1);
+                        questUserData.incrementProgressQuestsWithValueGoals(objectiveRegistry.getObjectiveType("RESURRECT_DRAGON"), 1, actor);
                     } else {
                         ConsoleLogger.info(eventManager.getPlugin().getName(), 
                             "Not all 4 crystals placed yet");
@@ -460,53 +416,46 @@ public class QuestEventHandlers {
             if (event.getEntity().getType() == EntityType.PRIMED_TNT) {
                 Entity tnt = event.getEntity();
                 int blockCount = event.blockList().size();
-                ConsoleLogger.info(eventManager.getPlugin().getName(), "TNT exploded! Blocks destroyed: %d", blockCount);
 
                 if (blockCount > 0
                         && tnt.getPersistentDataContainer().has(TNT_IGNITER_KEY, PersistentDataType.STRING)) {
                     String playerUuidString = tnt.getPersistentDataContainer().get(TNT_IGNITER_KEY,
                             PersistentDataType.STRING);
-                    ConsoleLogger.info(eventManager.getPlugin().getName(), "Found igniter UUID: %s", playerUuidString);
 
                     if (playerUuidString != null) {
                         try {
                             UUID playerUuid = UUID.fromString(playerUuidString);
-                            QuestUserData questUserData = questUsersStorage.getQuestUserData(playerUuid);
+                            Player actor = org.bukkit.Bukkit.getPlayer(playerUuid);
+                            if (actor == null) {
+                                return;
+                            }
+                            QuestUserData questUserData = progressTargetResolver.resolve(actor);
 
                             if (questUserData != null && questUserData.hasActiveQuestWithCurrentObjectiveType(
                                     objectiveRegistry.getObjectiveType("TNT_BREAK_BLOCKS"))) {
-                                ConsoleLogger.info(eventManager.getPlugin().getName(), "Incrementing TNT_BREAK_BLOCKS progress by %d", blockCount);
                                 questUserData.incrementProgressQuestsWithValueGoals(
-                                        objectiveRegistry.getObjectiveType("TNT_BREAK_BLOCKS"), blockCount);
-                            } else {
-                                ConsoleLogger.warn(eventManager.getPlugin().getName(), "Player has no active TNT_BREAK_BLOCKS quest");
+                                        objectiveRegistry.getObjectiveType("TNT_BREAK_BLOCKS"), blockCount, actor);
                             }
                         } catch (IllegalArgumentException ignored) {
                         }
                     }
-                } else {
-                    ConsoleLogger.warn(eventManager.getPlugin().getName(), "TNT has no igniter UUID or destroyed 0 blocks");
                 }
             }
         };
 
 
-        QuestEventHandler<InventoryClickEvent> useGrindstoneHandler = new UniversalQuestEventHandler<>(
-                questUsersStorage, (event, questUserData) -> {
+        QuestEventHandler<InventoryClickEvent> useGrindstoneHandler = universal((event, actor, questUserData) -> {
                     if (event.getInventory().getType() == InventoryType.GRINDSTONE) {
                         if (event.getSlotType() == InventoryType.SlotType.RESULT &&
                                 event.getCurrentItem() != null &&
                                 event.getCurrentItem().getType() != Material.AIR) {
-                            questUserData.incrementProgressQuestsWithValueGoals(
-                                    objectiveRegistry.getObjectiveType("USE_GRINDSTONE_ITEM"), 1);
+                            questUserData.incrementProgressQuestsWithValueGoals(objectiveRegistry.getObjectiveType("USE_GRINDSTONE_ITEM"), 1, actor);
                         }
                     }
                 });
 
-        QuestEventHandler<FurnaceExtractEvent> useFurnaceHandler = new UniversalQuestEventHandler<>(
-                questUsersStorage, (event, questUserData) -> {
-                    questUserData.incrementProgressQuestsWithValueGoals(
-                            objectiveRegistry.getObjectiveType("USE_FURNACE"), 1);
+        QuestEventHandler<FurnaceExtractEvent> useFurnaceHandler = universal((event, actor, questUserData) -> {
+                    questUserData.incrementProgressQuestsWithValueGoals(objectiveRegistry.getObjectiveType("USE_FURNACE"), 1, actor);
                 });
 
         Map<String, QuestEventHandler<?>> handlers = Map.copyOf(new HashMap<>() {
@@ -547,7 +496,7 @@ public class QuestEventHandlers {
         eventManager.registerHandler(PlayerInteractEntityEvent.class, transformEntityTrackerHandler);
 
         TntIgniteWrapper tntIgniteWrapper = new TntIgniteWrapper(
-                eventManager, questUsersStorage, objectiveRegistry, eventManager.getPlugin());
+                eventManager, questUsersStorage, objectiveRegistry, eventManager.getPlugin(), progressTargetResolver);
         tntIgniteWrapper.registerHandlers();
 
         for (Map.Entry<String, QuestEventHandler<?>> entry : handlers.entrySet()) {

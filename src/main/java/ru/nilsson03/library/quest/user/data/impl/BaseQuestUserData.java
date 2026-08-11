@@ -1,5 +1,7 @@
 package ru.nilsson03.library.quest.user.data.impl;
 
+import org.bukkit.entity.Player;
+
 import ru.nilsson03.library.quest.QuestLibrary;
 import ru.nilsson03.library.quest.exception.QuestAlreadyCompletedException;
 import ru.nilsson03.library.quest.exception.UserAlreadyHasQuestProgressException;
@@ -8,6 +10,7 @@ import ru.nilsson03.library.quest.objective.goal.Goal;
 import ru.nilsson03.library.quest.objective.progress.QuestProgress;
 import ru.nilsson03.library.quest.objective.registry.ObjectiveType;
 import ru.nilsson03.library.quest.quest.simple.BaseQuest;
+import ru.nilsson03.library.quest.user.data.QuestSubjectKind;
 import ru.nilsson03.library.quest.user.data.QuestUserData;
 
 import java.util.*;
@@ -16,9 +19,9 @@ import java.util.stream.Collectors;
 public class BaseQuestUserData implements QuestUserData {
 
     private final UUID uuid;
+    private final QuestSubjectKind subjectKind;
     private final List<BaseQuest> completeQuests;
     private final List<QuestProgress> questsProgress;
-    private final QuestUserReceiptsRewardsData receiptsRewardsData;
 
     /**
      * Конструктор для создания объекта QuestUserData с указанным UUID,
@@ -28,16 +31,35 @@ public class BaseQuestUserData implements QuestUserData {
      * @param completeQuests      Список завершенных квестов.
      * @param objectiveProgresses Список прогрессов по целям квестов.
      * @throws NullPointerException если любой из параметров равен null.
-     * @see QuestUserReceiptsRewardsData
      */
     public BaseQuestUserData(
             final UUID uuid, List<BaseQuest> completeQuests,
-            final List<QuestProgress> objectiveProgresses, QuestUserReceiptsRewardsData receiptsRewardsData)
+            final List<QuestProgress> objectiveProgresses)
+            throws NullPointerException {
+        this(uuid, QuestSubjectKind.PLAYER, completeQuests, objectiveProgresses);
+    }
+
+    public BaseQuestUserData(
+            final UUID uuid,
+            final QuestSubjectKind subjectKind,
+            List<BaseQuest> completeQuests,
+            final List<QuestProgress> objectiveProgresses)
             throws NullPointerException {
         this.uuid = Objects.requireNonNull(uuid, "User uuid cant be null");
+        this.subjectKind = subjectKind != null ? subjectKind : QuestSubjectKind.PLAYER;
         this.completeQuests = Collections.synchronizedList(Objects.requireNonNull(completeQuests, "Complete quests cant be null"));
         this.questsProgress = Collections.synchronizedList(Objects.requireNonNull(objectiveProgresses, "Objective progresses cant be null"));
-        this.receiptsRewardsData = receiptsRewardsData;
+    }
+
+    /**
+     * @deprecated use {@link #BaseQuestUserData(UUID, List, List)} — receipts rewards removed
+     */
+    @Deprecated
+    public BaseQuestUserData(
+            final UUID uuid, List<BaseQuest> completeQuests,
+            final List<QuestProgress> objectiveProgresses, Object ignoredReceipts)
+            throws NullPointerException {
+        this(uuid, completeQuests, objectiveProgresses);
     }
 
      /**
@@ -45,18 +67,22 @@ public class BaseQuestUserData implements QuestUserData {
      */
     @Override
     public synchronized void incrementProgressQuestsWithValueGoals(ObjectiveType objectiveType, long value) {
+        incrementProgressQuestsWithValueGoals(objectiveType, value, null);
+    }
 
+    @Override
+    public synchronized void incrementProgressQuestsWithValueGoals(ObjectiveType objectiveType, long value, Player actor) {
         if (!hasActiveQuestWithCurrentObjectiveType(objectiveType)) {
             return;
         }
 
         List<QuestProgress> objectivesProgress = getProgressByObjectiveType(objectiveType);
-        
+
         objectivesProgress.forEach(progress -> {
             Objective objective = progress.objective();
-            
+
             for (Goal goal : objective.goals()) {
-                progress.incrementProgress(goal, value);
+                progress.incrementProgress(goal, value, actor);
             }
         });
     }
@@ -67,16 +93,22 @@ public class BaseQuestUserData implements QuestUserData {
     @Override
     public synchronized void incrementProgressQuestsWithObjectiveType(final ObjectiveType objectiveType, Object object,
             long value) {
+        incrementProgressQuestsWithObjectiveType(objectiveType, object, value, null);
+    }
+
+    @Override
+    public synchronized void incrementProgressQuestsWithObjectiveType(
+            final ObjectiveType objectiveType, Object object, long value, Player actor) {
         if (!hasActiveQuestWithCurrentObjectiveType(objectiveType)) {
             return;
         }
 
         List<QuestProgress> objectivesProgress = getProgressByObjectiveType(objectiveType);
-        
+
         objectivesProgress.forEach(progress -> {
             Objective objective = progress.objective();
             Optional<Goal> optionalGoal = objective.getGoal(object);
-            optionalGoal.ifPresent(goal -> progress.incrementProgress(goal, value));
+            optionalGoal.ifPresent(goal -> progress.incrementProgress(goal, value, actor));
         });
     }
 
@@ -157,11 +189,6 @@ public class BaseQuestUserData implements QuestUserData {
                             .questUniqueKey());
         }
 
-        // if (ObjectivesUtil.isProgressForQuestWithCurrentTypeAlreadyAdded(progress,
-        // objectiveProgresses)) {
-        // return;
-        // }
-
         questsProgress.add(progress);
     }
 
@@ -222,22 +249,6 @@ public class BaseQuestUserData implements QuestUserData {
      * {@inheritDoc}
      */
     @Override
-    public boolean hasActiveReceiptsRewardsData() {
-        return receiptsRewardsData != null;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public QuestUserReceiptsRewardsData getReceiptsRewardsData() {
-        return receiptsRewardsData;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
     public List<BaseQuest> completeQuests() {
         synchronized (completeQuests) {
             return new ArrayList<>(completeQuests);
@@ -250,6 +261,11 @@ public class BaseQuestUserData implements QuestUserData {
     @Override
     public UUID uuid() {
         return uuid;
+    }
+
+    @Override
+    public QuestSubjectKind subjectKind() {
+        return subjectKind;
     }
 
      /**
@@ -266,6 +282,13 @@ public class BaseQuestUserData implements QuestUserData {
         }
 
         completeQuests.add(quest);
+    }
+
+    @Override
+    public synchronized void removeCompletedQuest(BaseQuest quest) {
+        Objects.requireNonNull(quest, "Quest cannot be null");
+        completeQuests.removeIf(completeQuest -> completeQuest.questUniqueKey()
+                .equals(quest.questUniqueKey()));
     }
 
     /**

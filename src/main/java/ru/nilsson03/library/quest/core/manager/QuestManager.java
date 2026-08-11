@@ -11,6 +11,7 @@ import org.bukkit.scheduler.BukkitTask;
 
 import lombok.Getter;
 import ru.nilsson03.library.NPlugin;
+import ru.nilsson03.library.quest.core.progress.ProgressTargetResolver;
 import ru.nilsson03.library.quest.core.service.QuestLifecycleService;
 import ru.nilsson03.library.quest.core.service.QuestProgressService;
 import ru.nilsson03.library.quest.handler.QuestEventManager;
@@ -23,6 +24,7 @@ import ru.nilsson03.library.quest.tracker.MovementTracker;
 import ru.nilsson03.library.quest.tracker.PlaytimeObjectiveTracker;
 import ru.nilsson03.library.quest.tracker.PrerequisiteQuestTracker;
 import ru.nilsson03.library.quest.tracker.SurvivalConditionTracker;
+import ru.nilsson03.library.quest.user.data.QuestSubjectKind;
 import ru.nilsson03.library.quest.user.data.QuestUserData;
 import ru.nilsson03.library.quest.user.storage.QuestUsersStorage;
 
@@ -35,6 +37,7 @@ public class QuestManager implements Listener {
     private final QuestEventManager questEventManager;
     private final QuestProgressService questProgressService;
     private final QuestCompleterRegistry questCompleterRegistry;
+    private final ProgressTargetResolver progressTargetResolver;
 
     private final MovementTracker movementTracker;
     private final PlaytimeObjectiveTracker playtimeObjectiveTracker;
@@ -54,9 +57,20 @@ public class QuestManager implements Listener {
      * @see QuestEventManager
      */
     public QuestManager(NPlugin plugin, QuestUsersStorage questUsersStorage, ObjectiveRegistry objectiveRegistry) {
+        this(plugin, questUsersStorage, objectiveRegistry, ProgressTargetResolver.identity(questUsersStorage));
+    }
+
+    public QuestManager(
+            NPlugin plugin,
+            QuestUsersStorage questUsersStorage,
+            ObjectiveRegistry objectiveRegistry,
+            ProgressTargetResolver progressTargetResolver) {
         this.plugin = plugin;
         this.questUsersStorage = questUsersStorage;
-        this.questEventManager = new QuestEventManager(plugin, questUsersStorage, objectiveRegistry);
+        this.progressTargetResolver = progressTargetResolver != null
+                ? progressTargetResolver
+                : ProgressTargetResolver.identity(questUsersStorage);
+        this.questEventManager = new QuestEventManager(plugin, questUsersStorage, objectiveRegistry, this.progressTargetResolver);
 
         questCompleterRegistry = new QuestCompleterRegistry(questUsersStorage);
         questCompleterRegistry.onRegisterInit();
@@ -64,11 +78,11 @@ public class QuestManager implements Listener {
         this.questProgressService = new QuestProgressService();
         this.questLifecycleService = new QuestLifecycleService(plugin, questProgressService, questCompleterRegistry);
 
-        this.movementTracker = new MovementTracker(plugin, questUsersStorage, objectiveRegistry);
+        this.movementTracker = new MovementTracker(plugin, questUsersStorage, objectiveRegistry, this.progressTargetResolver);
         ObjectiveType survivalType = objectiveRegistry.getObjectiveType("SURVIVAL_CONDITION");
-        survivalConditionTracker = new SurvivalConditionTracker(plugin, questUsersStorage, survivalType);
+        survivalConditionTracker = new SurvivalConditionTracker(plugin, questUsersStorage, survivalType, this.progressTargetResolver);
         ObjectiveType playtimeType = objectiveRegistry.getObjectiveType("PLAYTIME");
-        playtimeObjectiveTracker = new PlaytimeObjectiveTracker(plugin, questUsersStorage, playtimeType);
+        playtimeObjectiveTracker = new PlaytimeObjectiveTracker(plugin, questUsersStorage, playtimeType, this.progressTargetResolver);
         prerequisiteQuestTracker = new PrerequisiteQuestTracker(objectiveRegistry);
     }
 
@@ -149,6 +163,13 @@ public class QuestManager implements Listener {
         QuestUserData userData = questUsersStorage.getQuestUserData(player.getUniqueId());
         if (userData != null) {
             questUsersStorage.saveData(userData);
+        }
+
+        QuestUserData resolved = progressTargetResolver.resolve(player);
+        if (resolved != null
+                && resolved.subjectKind() == QuestSubjectKind.GROUP
+                && (userData == null || !resolved.uuid().equals(userData.uuid()))) {
+            questUsersStorage.saveData(resolved);
         }
     }
 }

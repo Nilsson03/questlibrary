@@ -1,18 +1,18 @@
 package ru.nilsson03.library.quest.objective.progress;
 
-import com.google.common.base.Preconditions;
-import org.bukkit.Bukkit;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+
 import org.bukkit.entity.Player;
+
 import ru.nilsson03.library.collection.Pair;
+import ru.nilsson03.library.quest.condition.ConditionContext;
 import ru.nilsson03.library.quest.condition.QuestCondition;
 import ru.nilsson03.library.quest.objective.Objective;
 import ru.nilsson03.library.quest.objective.goal.Goal;
 import ru.nilsson03.library.quest.quest.simple.BaseQuest;
 import ru.nilsson03.library.quest.user.data.QuestUserData;
-
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
 
 public interface QuestProgress {
 
@@ -43,35 +43,47 @@ public interface QuestProgress {
      * @param amount Количество, на которое увеличивается прогресс.
      */
     default void incrementProgress(Goal goal, long amount) {
-        Player player = Bukkit.getPlayer(userUuid());
+        incrementProgress(goal, amount, (Player) null);
+    }
 
-        Preconditions.checkArgument(player != null, "Player not found");
-
-        boolean conditionsAchieved = progressConditionsIsAchieve();
-        
-        if (!conditionsAchieved) {
+    /**
+     * Increments progress using the acting player for conditions and potion checks.
+     * Owner need not be an online player (group/guild owners).
+     */
+    default void incrementProgress(Goal goal, long amount, Player actor) {
+        if (!progressConditionsIsAchieve(actor)) {
             return;
         }
 
         long currentProgress = getValue(goal);
-        setProgress(goal, currentProgress + amount, true);
+        setProgress(goal, currentProgress + amount, true, actor);
     }
 
     default boolean conditionsIsAchieve() {
+        return conditionsIsAchieve(null);
+    }
+
+    default boolean conditionsIsAchieve(Player actor) {
+        ConditionContext context = ConditionContext.of(getUser(), actor);
         Set<QuestCondition> conditions = quest().conditions();
         for (QuestCondition questCondition : conditions) {
-            if (!questCondition.isMet(getUser())) {
+            if (!questCondition.isMet(context)) {
                 return false;
             }
         }
         return true;
     }
-    
+
     default boolean progressConditionsIsAchieve() {
+        return progressConditionsIsAchieve(null);
+    }
+
+    default boolean progressConditionsIsAchieve(Player actor) {
+        ConditionContext context = ConditionContext.of(getUser(), actor);
         Set<QuestCondition> conditions = quest().conditions();
         for (QuestCondition questCondition : conditions) {
             if (questCondition.getType() == QuestCondition.ConditionType.PROGRESS) {
-                if (!questCondition.isMet(getUser())) {
+                if (!questCondition.isMet(context)) {
                     return false;
                 }
             }
@@ -94,8 +106,15 @@ public interface QuestProgress {
      * @param progress Значение прогресса.
      * @param checkPlayerEffects Проверять ли эффекты игрока.
      */
-    void setProgress(Goal goal, long progress, boolean checkPlayerEffects);
-    
+    default void setProgress(Goal goal, long progress, boolean checkPlayerEffects) {
+        setProgress(goal, progress, checkPlayerEffects, null);
+    }
+
+    /**
+     * Sets progress using an optional actor for potion-effect checks and events.
+     */
+    void setProgress(Goal goal, long progress, boolean checkPlayerEffects, Player actor);
+
     /**
      * Напрямую устанавливает прогресс без проверок и событий.
      * Используется при загрузке данных из БД.

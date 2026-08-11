@@ -1,6 +1,10 @@
 package ru.nilsson03.library.quest.core.event;
 
+import java.util.Optional;
+import java.util.UUID;
+
 import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
@@ -18,14 +22,30 @@ public class UserCompleteQuestEvent extends Event implements Cancellable {
     private final QuestUserData questUserData;
     private final BaseQuest quest;
     private final CompleteStatus status;
+    private final UUID actorId;
     private boolean cancelled;
 
     public UserCompleteQuestEvent(NPlugin plugin, QuestUserData questUserData, BaseQuest quest, CompleteStatus status) {
+        this(plugin, questUserData, quest, status, (UUID) null);
+    }
+
+    public UserCompleteQuestEvent(
+            NPlugin plugin, QuestUserData questUserData, BaseQuest quest, CompleteStatus status, Player actor) {
+        this(plugin, questUserData, quest, status, actor != null ? actor.getUniqueId() : null);
+    }
+
+    public UserCompleteQuestEvent(
+            NPlugin plugin, QuestUserData questUserData, BaseQuest quest, CompleteStatus status, UUID actorId) {
         super(!Bukkit.isPrimaryThread());
         this.plugin = plugin;
         this.questUserData = questUserData;
         this.quest = quest;
         this.status = status;
+        this.actorId = actorId;
+    }
+
+    public NPlugin getPlugin() {
+        return plugin;
     }
 
     public QuestUserData getQuestUserData() {
@@ -38,6 +58,13 @@ public class UserCompleteQuestEvent extends Event implements Cancellable {
 
     public CompleteStatus getStatus() {
         return status;
+    }
+
+    /**
+     * Optional actor who triggered completion (e.g. last contributor).
+     */
+    public Optional<UUID> getActorId() {
+        return Optional.ofNullable(actorId);
     }
 
     @Override

@@ -8,6 +8,7 @@ import lombok.Getter;
 import ru.nilsson03.library.NPlugin;
 import ru.nilsson03.library.quest.condition.parser.registry.ConditionParserRegistry;
 import ru.nilsson03.library.quest.core.manager.QuestManager;
+import ru.nilsson03.library.quest.core.progress.ProgressTargetResolver;
 import ru.nilsson03.library.quest.meta.parser.registry.MetaParserRegistry;
 import ru.nilsson03.library.quest.objective.registry.ObjectiveRegistry;
 import ru.nilsson03.library.quest.reward.parser.registry.RewardParserRegistry;
@@ -91,8 +92,13 @@ public class QuestService {
     }
 
     public void initializeQuestManager(QuestUsersStorage questUsersStorage) {
+        initializeQuestManager(questUsersStorage, ProgressTargetResolver.identity(questUsersStorage));
+    }
+
+    public void initializeQuestManager(
+            QuestUsersStorage questUsersStorage, ProgressTargetResolver progressTargetResolver) {
         if (this.questManager == null) {
-            this.questManager = new QuestManager(plugin, questUsersStorage, objectiveRegistry);
+            this.questManager = new QuestManager(plugin, questUsersStorage, objectiveRegistry, progressTargetResolver);
         }
     }
 

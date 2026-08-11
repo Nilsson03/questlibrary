@@ -14,8 +14,10 @@ import ru.nilsson03.library.bukkit.util.log.ConsoleLogger;
 import ru.nilsson03.library.quest.exception.QuestAlreadyCompletedException;
 import ru.nilsson03.library.quest.objective.progress.QuestProgress;
 import ru.nilsson03.library.quest.quest.simple.BaseQuest;
+import ru.nilsson03.library.quest.user.data.QuestSubjectKind;
 import ru.nilsson03.library.quest.user.data.QuestUserData;
 import ru.nilsson03.library.quest.user.data.UserDataPersistent;
+import ru.nilsson03.library.quest.user.data.impl.BaseQuestUserData;
 
 public class QuestUsersStorage {
 
@@ -141,6 +143,31 @@ public class QuestUsersStorage {
         return usersData.computeIfAbsent(uuid, this::loadData);
     }
 
+    public QuestUserData getOrCreateGroupOwner(UUID uuid) {
+        Objects.requireNonNull(uuid, "uuid cannot be null");
+        return usersData.compute(uuid, (id, existing) -> {
+            if (existing != null && existing.subjectKind() == QuestSubjectKind.GROUP) {
+                return existing;
+            }
+            if (existing != null) {
+                return new BaseQuestUserData(
+                        id,
+                        QuestSubjectKind.GROUP,
+                        existing.completeQuests(),
+                        existing.getActiveQuests());
+            }
+            QuestUserData loaded = loadData(id);
+            if (loaded.subjectKind() == QuestSubjectKind.GROUP) {
+                return loaded;
+            }
+            return new BaseQuestUserData(
+                    id,
+                    QuestSubjectKind.GROUP,
+                    loaded.completeQuests(),
+                    loaded.getActiveQuests());
+        });
+    }
+
     public QuestUserData loadData(UUID uuid) {
         return userDataPersistent.loadUserData(uuid);
     }
@@ -165,5 +192,35 @@ public class QuestUsersStorage {
 
     public Collection<QuestUserData> getAllLoadedUsers() {
         return usersData.values();
+    }
+
+    public void clearCachedQuestData(Collection<? extends BaseQuest> quests) {
+        Objects.requireNonNull(quests, "quests cannot be null");
+        if (quests.isEmpty()) {
+            return;
+        }
+        for (QuestUserData userData : usersData.values()) {
+            for (BaseQuest quest : quests) {
+                userData.clearQuestState(quest);
+            }
+        }
+    }
+
+    public void clearCachedQuestData(UUID uuid, Collection<? extends BaseQuest> quests) {
+        Objects.requireNonNull(uuid, "uuid cannot be null");
+        Objects.requireNonNull(quests, "quests cannot be null");
+        QuestUserData userData = usersData.get(uuid);
+        if (userData == null || quests.isEmpty()) {
+            return;
+        }
+        for (BaseQuest quest : quests) {
+            userData.clearQuestState(quest);
+        }
+    }
+
+    public static void clearInitialization(Plugin plugin) {
+        if (plugin != null) {
+            initializationMap.remove(plugin);
+        }
     }
 }

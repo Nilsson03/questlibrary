@@ -12,6 +12,7 @@ import org.bukkit.scheduler.BukkitRunnable;
 
 import ru.nilsson03.library.bukkit.util.log.ConsoleLogger;
 import ru.nilsson03.library.quest.core.config.Config;
+import ru.nilsson03.library.quest.core.progress.ProgressTargetResolver;
 import ru.nilsson03.library.quest.objective.goal.impl.SurvivalConditionGoal;
 import ru.nilsson03.library.quest.objective.registry.ObjectiveType;
 import ru.nilsson03.library.quest.user.data.QuestUserData;
@@ -20,15 +21,25 @@ import ru.nilsson03.library.quest.user.storage.QuestUsersStorage;
 public class SurvivalConditionTracker {
 
     private final Plugin plugin;
-    private final QuestUsersStorage questUsersStorage;
     private final ObjectiveType objectiveType;
+    private final ProgressTargetResolver progressTargetResolver;
     private BukkitRunnable tracker;
     private final Map<UUID, Long> lastCheckTime = new HashMap<>();
 
     public SurvivalConditionTracker(Plugin plugin, QuestUsersStorage questUsersStorage, ObjectiveType objectiveType) {
+        this(plugin, questUsersStorage, objectiveType, ProgressTargetResolver.identity(questUsersStorage));
+    }
+
+    public SurvivalConditionTracker(
+            Plugin plugin,
+            QuestUsersStorage questUsersStorage,
+            ObjectiveType objectiveType,
+            ProgressTargetResolver progressTargetResolver) {
         this.plugin = plugin;
-        this.questUsersStorage = questUsersStorage;
         this.objectiveType = objectiveType;
+        this.progressTargetResolver = progressTargetResolver != null
+                ? progressTargetResolver
+                : ProgressTargetResolver.identity(questUsersStorage);
     }
 
     public void start() {
@@ -50,7 +61,7 @@ public class SurvivalConditionTracker {
         }
 
         UUID playerId = player.getUniqueId();
-        QuestUserData userData = questUsersStorage.getQuestUserData(playerId);
+        QuestUserData userData = progressTargetResolver.resolve(player);
 
         if (userData == null || !userData.hasActiveQuestWithCurrentObjectiveType(objectiveType)) {
             lastCheckTime.remove(playerId);
@@ -81,7 +92,7 @@ public class SurvivalConditionTracker {
                         player.getWorld().getName(),
                         player.getLocation().getBlock().getBiome());
 
-                userData.incrementProgressQuestsWithObjectiveType(objectiveType, survivalData, elapsedSeconds);
+                userData.incrementProgressQuestsWithObjectiveType(objectiveType, survivalData, elapsedSeconds, player);
             }
         } else {
             SurvivalConditionGoal.SurvivalData survivalData = new SurvivalConditionGoal.SurvivalData(
@@ -89,7 +100,7 @@ public class SurvivalConditionTracker {
                     player.getWorld().getName(),
                     player.getLocation().getBlock().getBiome());
 
-            userData.incrementProgressQuestsWithObjectiveType(objectiveType, survivalData, elapsedSeconds);
+            userData.incrementProgressQuestsWithObjectiveType(objectiveType, survivalData, elapsedSeconds, player);
         }
 
         lastCheckTime.put(playerId, currentTime);

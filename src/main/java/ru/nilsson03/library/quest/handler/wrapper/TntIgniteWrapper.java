@@ -21,6 +21,7 @@ import org.bukkit.plugin.Plugin;
 
 import ru.nilsson03.library.bukkit.util.log.ConsoleLogger;
 import ru.nilsson03.library.quest.core.config.Config;
+import ru.nilsson03.library.quest.core.progress.ProgressTargetResolver;
 import ru.nilsson03.library.quest.handler.QuestEventManager;
 import ru.nilsson03.library.quest.handler.handlers.QuestEventHandler;
 import ru.nilsson03.library.quest.handler.handlers.impl.UniversalQuestEventHandler;
@@ -33,14 +34,23 @@ public class TntIgniteWrapper {
     private final QuestEventManager eventManager;
     private final QuestUsersStorage questUsersStorage;
     private final ObjectiveRegistry objectiveRegistry;
+    private final ProgressTargetResolver progressTargetResolver;
     private final Plugin plugin;
 
     public TntIgniteWrapper(QuestEventManager eventManager, QuestUsersStorage questUsersStorage,
             ObjectiveRegistry objectiveRegistry, Plugin plugin) {
+        this(eventManager, questUsersStorage, objectiveRegistry, plugin, ProgressTargetResolver.identity(questUsersStorage));
+    }
+
+    public TntIgniteWrapper(QuestEventManager eventManager, QuestUsersStorage questUsersStorage,
+            ObjectiveRegistry objectiveRegistry, Plugin plugin, ProgressTargetResolver progressTargetResolver) {
         this.eventManager = eventManager;
         this.questUsersStorage = questUsersStorage;
         this.objectiveRegistry = objectiveRegistry;
         this.plugin = plugin;
+        this.progressTargetResolver = progressTargetResolver != null
+                ? progressTargetResolver
+                : ProgressTargetResolver.identity(questUsersStorage);
     }
 
     public void registerHandlers() {
@@ -72,12 +82,12 @@ public class TntIgniteWrapper {
                         if (!Config.isWorldEnabled(player.getWorld())) {
                             return;
                         }
-                        
-                        var questUserData = questUsersStorage.getQuestUserData(player.getUniqueId());
-                        
+
+                        var questUserData = progressTargetResolver.resolve(player);
+
                         if (questUserData != null) {
                             questUserData.incrementProgressQuestsWithValueGoals(
-                                    objectiveRegistry.getObjectiveType("IGNITE_TNT"), 1);
+                                    objectiveRegistry.getObjectiveType("IGNITE_TNT"), 1, player);
 
                             Object tntPrimed = event.getClass().getMethod("getTntPrimed").invoke(event);
                             ((TNTPrimed) tntPrimed).getPersistentDataContainer().set(
@@ -116,7 +126,7 @@ public class TntIgniteWrapper {
 
     private void registerVanillaHandler() {
         QuestEventHandler<PlayerInteractEvent> vanillaHandler = new UniversalQuestEventHandler<>(
-                questUsersStorage, (event, questUserData) -> {
+                progressTargetResolver, (event, actor, questUserData) -> {
                     if (isDynamiteSticksEnabled()) {
                         return;
                     }
@@ -128,10 +138,10 @@ public class TntIgniteWrapper {
                             if (item != null && (item.getType() == Material.FLINT_AND_STEEL
                                     || item.getType() == Material.FIRE_CHARGE)) {
                                 questUserData.incrementProgressQuestsWithValueGoals(
-                                        objectiveRegistry.getObjectiveType("IGNITE_TNT"), 1);
+                                        objectiveRegistry.getObjectiveType("IGNITE_TNT"), 1, actor);
 
                                 Location tntLocation = block.getLocation();
-                                UUID playerId = questUserData.uuid();
+                                UUID playerId = actor.getUniqueId();
 
                                 Bukkit.getScheduler().runTaskLater(plugin, () -> {
                                     tntLocation.getWorld().getNearbyEntities(tntLocation, 1.5, 1.5, 1.5).stream()

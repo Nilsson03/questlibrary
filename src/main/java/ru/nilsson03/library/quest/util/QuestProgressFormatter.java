@@ -239,16 +239,20 @@ public class QuestProgressFormatter {
     /**
      * Получает читаемое имя задачи.
      * Использует description если доступно, иначе форматирует ключ.
+     * Поддерживает все типы целей, включая movement / survival и daily-квесты.
      */
-    private static String formatObjectiveName(Objective objective) {
+    public static String formatObjectiveName(Objective objective) {
+        if (objective == null) {
+            return "";
+        }
         if (objective.description() != null && !objective.description().isEmpty()) {
             return objective.description();
         }
 
         String key = objective.key();
-        String typeName = objective.type().key();
+        String typeName = objective.type() != null ? objective.type().key() : "objective";
 
-        String readableName = key.replace("_", " ");
+        String readableName = key != null ? key.replace("_", " ") : typeName;
         readableName = capitalizeWords(readableName);
 
         return readableName + " (" + typeName + ")";

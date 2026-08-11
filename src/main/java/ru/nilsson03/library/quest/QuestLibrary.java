@@ -2,12 +2,12 @@ package ru.nilsson03.library.quest;
 
 import lombok.Getter;
 import org.bukkit.Bukkit;
+import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.Plugin;
 
 import ru.nilsson03.library.NPlugin;
-import ru.nilsson03.library.bukkit.file.BukkitDirectory;
-import ru.nilsson03.library.bukkit.file.FileHelper;
-import ru.nilsson03.library.bukkit.file.configuration.BukkitConfig;
+import ru.nilsson03.library.bukkit.util.file.ConfigurationUtil;
+import ru.nilsson03.library.bukkit.util.file.DirectoryHelper;
 import ru.nilsson03.library.bukkit.util.log.ConsoleLogger;
 import ru.nilsson03.library.quest.core.listener.QuestProgressListener;
 import ru.nilsson03.library.quest.exception.QuestStorageDuplicateException;
@@ -20,7 +20,8 @@ public class QuestLibrary extends NPlugin {
     private static QuestLibrary instance;
 
     @Getter
-    private BukkitConfig configuration;
+    private FileConfiguration configuration;
+    private DirectoryHelper directoryHelper;
     private QuestStorageManager questStorageManager;
 
     @Override
@@ -34,12 +35,21 @@ public class QuestLibrary extends NPlugin {
                     exception.getMessage());
             Bukkit.getPluginManager()
                     .disablePlugin(this);
+            return;
         }
 
-        FileHelper.loadConfigurations(this, "config.yml");
-        BukkitDirectory rootDirectory = getDirectory("/");
-        configuration = rootDirectory.getBukkitConfig("config.yml");
+        ConfigurationUtil.load(this, getDataFolder(), "config.yml");
+        directoryHelper = DirectoryHelper.of(this);
+        DirectoryHelper.Directory rootDirectory = directoryHelper.getOrLoad("");
+        configuration = rootDirectory.get("config.yml");
         getServer().getPluginManager().registerEvents(new QuestProgressListener(), this);
+    }
+
+    @Override
+    public void disable() {
+        if (directoryHelper != null) {
+            directoryHelper.unregister();
+        }
     }
 
     public QuestStorage getQuestStorage(Plugin plugin) {

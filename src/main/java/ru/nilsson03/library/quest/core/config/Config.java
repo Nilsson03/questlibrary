@@ -3,13 +3,13 @@ package ru.nilsson03.library.quest.core.config;
 import java.util.List;
 
 import org.bukkit.World;
+import org.bukkit.configuration.file.FileConfiguration;
 
-import ru.nilsson03.library.bukkit.file.configuration.BukkitConfig;
 import ru.nilsson03.library.quest.QuestLibrary;
 
 public class Config {
 
-    private static BukkitConfig config;
+    private static FileConfiguration config;
 
     public static String messages_QuestProgress() {
         return getConfig().getString("settings.quest_progress");
@@ -36,7 +36,7 @@ public class Config {
     }
 
     public static List<String> getDisabledWorlds() {
-        return getConfig().getList("settings.disabled_worlds");
+        return getConfig().getStringList("settings.disabled_worlds");
     }
 
     public static boolean isWorldEnabled(World world) {
@@ -47,7 +47,7 @@ public class Config {
         return !disabledWorlds.contains(world.getName());
     }
 
-    public static BukkitConfig getConfig() {
+    public static FileConfiguration getConfig() {
         if (config == null) {
             config = QuestLibrary.getApi().getConfiguration();
         }

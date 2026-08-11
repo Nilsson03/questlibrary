@@ -1,5 +1,6 @@
 package ru.nilsson03.library.quest.handler.handlers.impl;
 
+import java.util.UUID;
 import java.util.function.BiConsumer;
 
 import org.bukkit.NamespacedKey;
@@ -21,9 +22,9 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.PlayerEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerShearEntityEvent;
-import java.util.UUID;
 
 import ru.nilsson03.library.quest.core.config.Config;
+import ru.nilsson03.library.quest.core.progress.ProgressTargetResolver;
 import ru.nilsson03.library.quest.handler.handlers.QuestEventHandler;
 import ru.nilsson03.library.quest.user.data.QuestUserData;
 import ru.nilsson03.library.quest.user.storage.QuestUsersStorage;
@@ -32,17 +33,38 @@ import ru.nilsson03.library.quest.user.storage.QuestUsersStorage;
  * Универсальный обработчик событий
  *
  * @param <T> событие Bukkit, которое должен обрабатывать данный слушатель
- * @see QuestEventHandler<T>
+ * @see QuestEventHandler
  */
 public class UniversalQuestEventHandler<T extends Event> implements QuestEventHandler<T> {
 
-    private final QuestUsersStorage questUsersStorage;
-    private final BiConsumer<T, QuestUserData> eventHandlerLogic;
+    private final ProgressTargetResolver progressTargetResolver;
+    private final QuestEventProgressLogic<T> eventHandlerLogic;
+
+    @FunctionalInterface
+    public interface QuestEventProgressLogic<T extends Event> {
+        void accept(T event, Player actor, QuestUserData owner);
+    }
 
     public UniversalQuestEventHandler(
             QuestUsersStorage questUsersStorage, BiConsumer<T, QuestUserData> eventHandlerLogic) {
-        this.questUsersStorage = questUsersStorage;
+        this(ProgressTargetResolver.identity(questUsersStorage),
+                (event, actor, owner) -> eventHandlerLogic.accept(event, owner));
+    }
+
+    public UniversalQuestEventHandler(
+            ProgressTargetResolver progressTargetResolver,
+            QuestEventProgressLogic<T> eventHandlerLogic) {
+        this.progressTargetResolver = progressTargetResolver;
         this.eventHandlerLogic = eventHandlerLogic;
+    }
+
+    public UniversalQuestEventHandler(
+            QuestUsersStorage questUsersStorage,
+            ProgressTargetResolver progressTargetResolver,
+            QuestEventProgressLogic<T> eventHandlerLogic) {
+        this(progressTargetResolver != null
+                ? progressTargetResolver
+                : ProgressTargetResolver.identity(questUsersStorage), eventHandlerLogic);
     }
 
     /**
@@ -59,9 +81,9 @@ public class UniversalQuestEventHandler<T extends Event> implements QuestEventHa
             return;
         }
 
-        QuestUserData questUserData = questUsersStorage.getQuestUserData(player.getUniqueId());
+        QuestUserData questUserData = progressTargetResolver.resolve(player);
         if (questUserData != null) {
-            eventHandlerLogic.accept(event, questUserData);
+            eventHandlerLogic.accept(event, player, questUserData);
         }
     }
 

@@ -33,7 +33,9 @@ public class QuestProgressListener implements Listener {
             return;
         }
 
-        Player player = Bukkit.getPlayer(userData.uuid());
+        Player player = event.getActorId()
+                .map(Bukkit::getPlayer)
+                .orElseGet(() -> Bukkit.getPlayer(userData.uuid()));
 
         if (player == null) {
             return;

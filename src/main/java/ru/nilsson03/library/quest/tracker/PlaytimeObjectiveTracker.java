@@ -12,6 +12,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitTask;
 
 import ru.nilsson03.library.quest.core.config.Config;
+import ru.nilsson03.library.quest.core.progress.ProgressTargetResolver;
 import ru.nilsson03.library.quest.objective.progress.QuestProgress;
 import ru.nilsson03.library.quest.objective.registry.ObjectiveType;
 import ru.nilsson03.library.quest.quest.simple.BaseQuest;
@@ -24,8 +25,8 @@ public class PlaytimeObjectiveTracker {
     private static final long UPDATE_INTERVAL_TICKS = 20L;
 
     private final JavaPlugin plugin;
-    private final QuestUsersStorage questUsersStorage;
     private final ObjectiveType playtimeObjectiveType;
+    private final ProgressTargetResolver progressTargetResolver;
 
     private final Map<UUID, Map<BaseQuest, Integer>> questStartTicks = new HashMap<>();
     private final Map<UUID, Integer> lastKnownTicks = new HashMap<>();
@@ -36,9 +37,19 @@ public class PlaytimeObjectiveTracker {
     public PlaytimeObjectiveTracker(JavaPlugin plugin,
             QuestUsersStorage questUsersStorage,
             ObjectiveType playtimeObjectiveType) {
+        this(plugin, questUsersStorage, playtimeObjectiveType, ProgressTargetResolver.identity(questUsersStorage));
+    }
+
+    public PlaytimeObjectiveTracker(
+            JavaPlugin plugin,
+            QuestUsersStorage questUsersStorage,
+            ObjectiveType playtimeObjectiveType,
+            ProgressTargetResolver progressTargetResolver) {
         this.plugin = plugin;
-        this.questUsersStorage = questUsersStorage;
         this.playtimeObjectiveType = playtimeObjectiveType;
+        this.progressTargetResolver = progressTargetResolver != null
+                ? progressTargetResolver
+                : ProgressTargetResolver.identity(questUsersStorage);
     }
 
     public void start() {
@@ -71,7 +82,7 @@ public class PlaytimeObjectiveTracker {
 
             UUID uuid = player.getUniqueId();
 
-            QuestUserData questUserData = questUsersStorage.getQuestUserData(uuid);
+            QuestUserData questUserData = progressTargetResolver.resolve(player);
             if (questUserData == null) {
                 continue;
             }
@@ -88,7 +99,7 @@ public class PlaytimeObjectiveTracker {
 
             int currentTicks = player.getStatistic(Statistic.PLAY_ONE_MINUTE);
             ensureQuestStartTimes(uuid, currentTicks, activePlaytimeProgress);
-            updatePlayerPlaytime(questUserData, uuid, currentTicks);
+            updatePlayerPlaytime(questUserData, player, uuid, currentTicks);
         }
 
         cleanupOfflinePlayers();
@@ -106,7 +117,7 @@ public class PlaytimeObjectiveTracker {
                 .noneMatch(activeQuest -> activeQuest.equals(quest)));
     }
 
-    private void updatePlayerPlaytime(QuestUserData questUserData, UUID uuid, int currentTicks) {
+    private void updatePlayerPlaytime(QuestUserData questUserData, Player actor, UUID uuid, int currentTicks) {
         if (!lastKnownTicks.containsKey(uuid)) {
             lastKnownTicks.put(uuid, currentTicks);
             return;
@@ -127,7 +138,7 @@ public class PlaytimeObjectiveTracker {
         lastKnownTicks.put(uuid, currentTicks);
 
         if (secondsToAdd > 0) {
-            questUserData.incrementProgressQuestsWithValueGoals(playtimeObjectiveType, secondsToAdd);
+            questUserData.incrementProgressQuestsWithValueGoals(playtimeObjectiveType, secondsToAdd, actor);
         }
     }
 

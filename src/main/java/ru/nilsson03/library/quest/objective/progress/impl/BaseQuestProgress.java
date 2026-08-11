@@ -12,8 +12,6 @@ import java.util.stream.Collectors;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
-import com.google.common.base.Preconditions;
-
 import ru.nilsson03.library.quest.core.event.UserQuestProgressEvent;
 import ru.nilsson03.library.quest.objective.Objective;
 import ru.nilsson03.library.quest.objective.goal.Goal;
@@ -82,17 +80,19 @@ public class BaseQuestProgress implements QuestProgress {
     /**
      * {@inheritDoc}
      */
-    public void setProgress(Goal goal, long progress, boolean checkPlayerEffects) {
+    @Override
+    public void setProgress(Goal goal, long progress, boolean checkPlayerEffects, Player actor) {
         Objects.requireNonNull(goal, "Goal cannot be null");
 
-        Player player = Bukkit.getPlayer(user.uuid());
-        Preconditions.checkArgument(player != null, "Player not found");
+        Player effectPlayer = actor != null ? actor : Bukkit.getPlayer(user.uuid());
 
         boolean canIncrement = canIncrementProgress(goal, objective);
 
         if (canIncrement) {
-            if (checkPlayerEffects && !getObjective().hasAllPotionEffects(player)) {
-                return;
+            if (checkPlayerEffects) {
+                if (effectPlayer == null || !getObjective().hasAllPotionEffects(effectPlayer)) {
+                    return;
+                }
             }
 
             long requiredProgress = objective.getRequiredProgress(goal);
@@ -103,8 +103,8 @@ public class BaseQuestProgress implements QuestProgress {
                 newProgress = requiredProgress;
             }
 
-            UserQuestProgressEvent event = new UserQuestProgressEvent(user, quest, objective, goal, currentProgress,
-                    newProgress);
+            UserQuestProgressEvent event = new UserQuestProgressEvent(
+                    user, quest, objective, goal, currentProgress, newProgress, actor);
             Bukkit.getPluginManager().callEvent(event);
 
             if (event.isCancelled()) {

@@ -1,10 +1,9 @@
 package ru.nilsson03.library.quest.user.data.impl;
 
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -13,10 +12,8 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 
 import ru.nilsson03.library.NPlugin;
-import ru.nilsson03.library.bukkit.file.BukkitDirectory;
-import ru.nilsson03.library.bukkit.file.FileRepository;
-import ru.nilsson03.library.bukkit.file.configuration.BukkitConfig;
 import ru.nilsson03.library.bukkit.util.Namespace;
+import ru.nilsson03.library.bukkit.util.file.DirectoryHelper;
 import ru.nilsson03.library.bukkit.util.log.ConsoleLogger;
 import ru.nilsson03.library.quest.objective.goal.registry.ObjectiveGoalFactoryRegistry;
 import ru.nilsson03.library.quest.objective.progress.ProgressSaver;
@@ -26,33 +23,36 @@ import ru.nilsson03.library.quest.objective.progress.saver.BaseProgressSaver;
 import ru.nilsson03.library.quest.parser.Parser;
 import ru.nilsson03.library.quest.quest.simple.BaseQuest;
 import ru.nilsson03.library.quest.storage.QuestStorage;
+import ru.nilsson03.library.quest.user.data.QuestSubjectKind;
 import ru.nilsson03.library.quest.user.data.QuestUserData;
 import ru.nilsson03.library.quest.user.data.UserDataPersistent;
 
 public class FileUserPersistent implements UserDataPersistent {
 
-    private final FileRepository fileRepository;
+    private final DirectoryHelper directoryHelper;
     private final NPlugin plugin;
     private final QuestStorage questStorage;
     private final Parser<QuestProgress> questProgressParser;
     private final ProgressSaver progressSaver;
-    private final BukkitDirectory usersDirectory;
+    private final DirectoryHelper.Directory usersDirectory;
     private final Map<UUID, Object> fileLocks = new ConcurrentHashMap<>();
 
     public FileUserPersistent(NPlugin plugin,
             QuestStorage questStorage,
             ObjectiveGoalFactoryRegistry objectiveGoalFactoryRegistry) {
         this.plugin = plugin;
-        this.fileRepository = plugin.fileRepository();
+        this.directoryHelper = DirectoryHelper.of(plugin);
         this.questStorage = questStorage;
         this.questProgressParser = new BaseProgressParser(questStorage, objectiveGoalFactoryRegistry);
         this.progressSaver = new BaseProgressSaver();
-        Optional<BukkitDirectory> usersDirectoryOptional = fileRepository.getDirectoryOrLoad("users");
-
-        if (usersDirectoryOptional.isEmpty())
+        this.usersDirectory = directoryHelper.getOrLoad("users");
+        if (this.usersDirectory == null) {
             throw new NullPointerException("Users directory not found, class FileUserDataStorage");
-        else
-            this.usersDirectory = usersDirectoryOptional.get();
+        }
+    }
+
+    private static String toUserFileName(UUID uuid) {
+        return uuid.toString() + ".yml";
     }
 
     @Override
@@ -60,22 +60,19 @@ public class FileUserPersistent implements UserDataPersistent {
         UUID uuid = userData.uuid();
         Object lock = fileLocks.computeIfAbsent(uuid, k -> new Object());
         synchronized (lock) {
-            String userFileName = uuid.toString();
-            BukkitConfig userFile;
-            if (usersDirectory.containsFileWithName(userFileName)) {
-                userFile = usersDirectory.getBukkitConfig(userFileName);
+            String userFileName = toUserFileName(uuid);
+            FileConfiguration config;
+            if (usersDirectory.contains(userFileName)) {
+                config = usersDirectory.get(userFileName);
             } else {
-                Optional<BukkitConfig> createdFile = fileRepository.create(usersDirectory, userFileName);
-                if (createdFile.isPresent())
-                    userFile = createdFile.get();
-                else {
+                config = directoryHelper.create(usersDirectory, userFileName);
+                if (config == null) {
                     throw new NullPointerException("Не удалось создать пустую конфигурацию для игрока " + userFileName);
                 }
             }
 
-            FileConfiguration config = userFile.getFileConfiguration();
-
             config.set("uuid", userData.uuid().toString());
+            config.set("subject_kind", userData.subjectKind().name());
 
             config.set("completed_quests", userData.completeQuests().stream()
                     .map(q -> q.questUniqueKey().getKey())
@@ -99,15 +96,9 @@ public class FileUserPersistent implements UserDataPersistent {
                 progressSaver.save(progress, configurationSection);
             });
 
-            if (userData.hasActiveReceiptsRewardsData()) {
-                QuestUserReceiptsRewardsData receiptsRewardsData = userData.getReceiptsRewardsData();
+            config.set("receipts_rewards", null);
 
-                for (Map.Entry<UUID, Integer> entry : receiptsRewardsData.getTakenRewardsAndCount().entrySet()) {
-                    config.set("receipts_rewards." + entry.getKey().toString(), entry.getValue());
-                }
-            }
-
-            userFile.saveConfiguration();
+            usersDirectory.save(userFileName);
         }
     }
 
@@ -116,42 +107,36 @@ public class FileUserPersistent implements UserDataPersistent {
         Object lock = fileLocks.computeIfAbsent(uuid, k -> new Object());
         synchronized (lock) {
 
-            String userFileName = uuid.toString();
-            BukkitConfig userFile;
-            if (usersDirectory.containsFileWithName(userFileName)) {
-                userFile = usersDirectory.getBukkitConfig(userFileName);
-            } else {
+            String userFileName = toUserFileName(uuid);
+            if (!usersDirectory.contains(userFileName)) {
                 return new BaseQuestUserData(uuid,
                         new ArrayList<>(),
-                        new ArrayList<>(),
-                        new QuestUserReceiptsRewardsData());
+                        new ArrayList<>());
             }
 
-            FileConfiguration config = userFile.getFileConfiguration();
+            FileConfiguration config = usersDirectory.get(userFileName);
 
             List<QuestProgress> questProgressList = new ArrayList<>();
-
-            Map<UUID, Integer> receiptsRewards = new HashMap<>();
-            if (config.contains("receipts_rewards")) {
-                for (String keyUUID : config.getConfigurationSection("receipts_rewards").getKeys(false)) {
-                    UUID rewardUUID = UUID.fromString(keyUUID);
-                    int takenCount = config.getInt("receipts_rewards." + keyUUID);
-                    receiptsRewards.put(rewardUUID, takenCount);
-                }
-            }
-
-            QuestUserReceiptsRewardsData questUserReceiptsRewardsData = new QuestUserReceiptsRewardsData(
-                    receiptsRewards);
 
             List<BaseQuest> completedQuests = new ArrayList<>(config.getStringList("completed_quests")
                     .stream()
                     .map(questStorage::getQuestByUniqueKeyOrThrow)
                     .toList());
 
+            QuestSubjectKind subjectKind = QuestSubjectKind.PLAYER;
+            String rawKind = config.getString("subject_kind");
+            if (rawKind != null && !rawKind.isEmpty()) {
+                try {
+                    subjectKind = QuestSubjectKind.valueOf(rawKind);
+                } catch (IllegalArgumentException ignored) {
+                    subjectKind = QuestSubjectKind.PLAYER;
+                }
+            }
+
             QuestUserData userData = new BaseQuestUserData(uuid,
+                    subjectKind,
                     completedQuests,
-                    new ArrayList<>(),
-                    questUserReceiptsRewardsData);
+                    new ArrayList<>());
 
             if (config.contains("active_progresses")) {
                 ConfigurationSection configurationSection = config.getConfigurationSection("active_progresses");
@@ -178,12 +163,11 @@ public class FileUserPersistent implements UserDataPersistent {
     public void deleteUserData(UUID uuid) {
         Object lock = fileLocks.computeIfAbsent(uuid, k -> new Object());
         synchronized (lock) {
-            String userFileName = uuid.toString();
-            if (usersDirectory.containsFileWithName(userFileName)) {
-                BukkitConfig userFile = usersDirectory.getBukkitConfig(userFileName);
-                usersDirectory.removeAndDeleteConfig(userFile);
+            String userFileName = toUserFileName(uuid);
+            if (usersDirectory.contains(userFileName)) {
+                directoryHelper.delete(usersDirectory, userFileName);
                 ConsoleLogger.info(plugin, "Данные игрока %s были успешно удалены.", userFileName);
-                fileLocks.remove(uuid); // Удаляем lock после удаления данных
+                fileLocks.remove(uuid);
             }
         }
     }
@@ -192,14 +176,12 @@ public class FileUserPersistent implements UserDataPersistent {
     public long getQuestCompletionTime(UUID uuid, String questKey) {
         Object lock = fileLocks.computeIfAbsent(uuid, k -> new Object());
         synchronized (lock) {
-            String userFileName = uuid.toString();
-            if (!usersDirectory.containsFileWithName(userFileName)) {
+            String userFileName = toUserFileName(uuid);
+            if (!usersDirectory.contains(userFileName)) {
                 return 0;
             }
 
-            BukkitConfig userFile = usersDirectory.getBukkitConfig(userFileName);
-            FileConfiguration config = userFile.getFileConfiguration();
-
+            FileConfiguration config = usersDirectory.get(userFileName);
             return config.getLong("quest_completion_times." + questKey, 0);
         }
     }
@@ -209,13 +191,12 @@ public class FileUserPersistent implements UserDataPersistent {
         return CompletableFuture.runAsync(() -> {
             Object lock = fileLocks.computeIfAbsent(uuid, k -> new Object());
             synchronized (lock) {
-                String userFileName = uuid.toString();
-                if (!usersDirectory.containsFileWithName(userFileName)) {
+                String userFileName = toUserFileName(uuid);
+                if (!usersDirectory.contains(userFileName)) {
                     return;
                 }
 
-                BukkitConfig userFile = usersDirectory.getBukkitConfig(userFileName);
-                FileConfiguration config = userFile.getFileConfiguration();
+                FileConfiguration config = usersDirectory.get(userFileName);
 
                 List<String> completedQuests = new ArrayList<>(config.getStringList("completed_quests"));
                 completedQuests.remove(questKey);
@@ -223,8 +204,42 @@ public class FileUserPersistent implements UserDataPersistent {
                 config.set("active_progresses." + questKey, null);
                 config.set("quest_completion_times." + questKey, null);
 
-                userFile.saveConfiguration();
+                usersDirectory.save(userFileName);
                 ConsoleLogger.debug(plugin.getName(), "Deleted quest data for user %s, quest %s", uuid, questKey);
+            }
+        });
+    }
+
+    @Override
+    public CompletableFuture<Void> deleteQuestDataByKeys(Collection<String> questKeys) {
+        if (questKeys == null || questKeys.isEmpty()) {
+            return CompletableFuture.completedFuture(null);
+        }
+        return CompletableFuture.runAsync(() -> {
+            for (String fileName : usersDirectory.getFileNames()) {
+                FileConfiguration config = usersDirectory.get(fileName);
+                if (config == null) {
+                    continue;
+                }
+                List<String> completedQuests = new ArrayList<>(config.getStringList("completed_quests"));
+                boolean changed = false;
+                for (String questKey : questKeys) {
+                    if (completedQuests.remove(questKey)) {
+                        changed = true;
+                    }
+                    if (config.contains("active_progresses." + questKey)) {
+                        config.set("active_progresses." + questKey, null);
+                        changed = true;
+                    }
+                    if (config.contains("quest_completion_times." + questKey)) {
+                        config.set("quest_completion_times." + questKey, null);
+                        changed = true;
+                    }
+                }
+                if (changed) {
+                    config.set("completed_quests", completedQuests);
+                    usersDirectory.save(fileName);
+                }
             }
         });
     }

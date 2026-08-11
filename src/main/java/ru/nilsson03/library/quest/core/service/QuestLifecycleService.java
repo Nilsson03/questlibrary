@@ -7,6 +7,7 @@ import java.util.function.Consumer;
 import org.bukkit.Bukkit;
 
 import ru.nilsson03.library.NPlugin;
+import ru.nilsson03.library.quest.condition.ConditionContext;
 import ru.nilsson03.library.quest.condition.QuestCondition.ConditionType;
 import ru.nilsson03.library.quest.core.event.UserCompleteQuestEvent;
 import ru.nilsson03.library.quest.core.event.UserQuestStartEvent;
@@ -42,7 +43,7 @@ public class QuestLifecycleService {
         boolean unmetPrerequisite = quest.conditions()
                 .stream()
                 .filter(condition -> condition.getType() == ConditionType.START)
-                .allMatch(condition -> condition.isMet(user));
+                .allMatch(condition -> condition.isMet(ConditionContext.of(user)));
 
         if (!unmetPrerequisite) {
             return;

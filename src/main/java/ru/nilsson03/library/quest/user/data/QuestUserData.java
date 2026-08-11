@@ -1,11 +1,12 @@
 package ru.nilsson03.library.quest.user.data;
 
+import org.bukkit.entity.Player;
+
 import ru.nilsson03.library.quest.exception.QuestAlreadyCompletedException;
 import ru.nilsson03.library.quest.exception.UserAlreadyHasQuestProgressException;
 import ru.nilsson03.library.quest.objective.progress.QuestProgress;
 import ru.nilsson03.library.quest.objective.registry.ObjectiveType;
 import ru.nilsson03.library.quest.quest.simple.BaseQuest;
-import ru.nilsson03.library.quest.user.data.impl.QuestUserReceiptsRewardsData;
 
 import java.util.List;
 import java.util.Set;
@@ -15,7 +16,16 @@ public interface QuestUserData {
 
     void incrementProgressQuestsWithValueGoals(final ObjectiveType objectiveType, long value);
 
+    default void incrementProgressQuestsWithValueGoals(final ObjectiveType objectiveType, long value, Player actor) {
+        incrementProgressQuestsWithValueGoals(objectiveType, value);
+    }
+
     void incrementProgressQuestsWithObjectiveType(final ObjectiveType objectiveType, Object object, long value);
+
+    default void incrementProgressQuestsWithObjectiveType(
+            final ObjectiveType objectiveType, Object object, long value, Player actor) {
+        incrementProgressQuestsWithObjectiveType(objectiveType, object, value);
+    }
 
     /**
      * Добавление игроку новых прогрессов прохождения квестов 
@@ -84,20 +94,6 @@ public interface QuestUserData {
     List<QuestProgress> getAllProgressForQuest(BaseQuest quest) throws QuestAlreadyCompletedException;
 
     /**
-     * Хранится/есть ли информация о полученных игроком наградах за квесты
-     * @return true or false
-     */
-    boolean hasActiveReceiptsRewardsData();
-
-    /**
-     * Метод для получения хранилища с информацией о полученных игроком наградах за выполнение квестов
-     * Может быть null, если при инициализации класса был установлен флаг initializeReceiptsRewards == false
-     *
-     * @return хранилище с информацией о полученных игроком наградах за выполнение квестов
-     */
-    QuestUserReceiptsRewardsData getReceiptsRewardsData();
-
-    /**
      * Получение завершённых у игрока квестов
      * @return список завершённых квестов
      */
@@ -109,12 +105,33 @@ public interface QuestUserData {
      */
     UUID uuid();
 
+    default QuestSubjectKind subjectKind() {
+        return QuestSubjectKind.PLAYER;
+    }
+
     /**
      * Добавление игроку выполненного квеста, если он ещё не добавлен в коллекцию
      *
      * @param quest квест, который необходимо добавить в список выполненных
      */
     void addCompletedQuest(BaseQuest quest);
+
+    /**
+     * Удаляет квест из списка завершённых у игрока (если присутствует).
+     *
+     * @param quest квест
+     */
+    void removeCompletedQuest(BaseQuest quest);
+
+    /**
+     * Снимает прогресс и отметку о завершении для указанного квеста.
+     *
+     * @param quest квест
+     */
+    default void clearQuestState(BaseQuest quest) {
+        removeQuestProgress(quest);
+        removeCompletedQuest(quest);
+    }
 
     /**
      * Получение активных квестов игрока

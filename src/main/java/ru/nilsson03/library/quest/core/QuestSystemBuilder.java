@@ -14,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import ru.nilsson03.library.NPlugin;
 import ru.nilsson03.library.quest.QuestLibrary;
 import ru.nilsson03.library.quest.core.manager.QuestManager;
+import ru.nilsson03.library.quest.core.progress.ProgressTargetResolver;
 import ru.nilsson03.library.quest.core.service.QuestLifecycleService;
 import ru.nilsson03.library.quest.core.service.QuestService;
 import ru.nilsson03.library.quest.meta.QuestMeta;
@@ -37,6 +38,8 @@ public class QuestSystemBuilder {
     private QuestLoader questLoader;
     private Function<QuestService, QuestLoader> questLoaderFactory;
     private UserDataPersistent persistent;
+    private ProgressTargetResolver progressTargetResolver;
+    private Function<QuestUsersStorage, ProgressTargetResolver> progressTargetResolverFactory;
     private final Map<String, Class<? extends Event>> objectiveTypes = new HashMap<>();
     private final Map<String, ObjectiveGoalFactory> goalFactories = new HashMap<>();
     private final List<CompleterRegistration> completerRegistrations = new ArrayList<>();
@@ -48,6 +51,19 @@ public class QuestSystemBuilder {
 
     public QuestSystemBuilder withQuestLoader(QuestLoader questLoader) {
         this.questLoader = questLoader;
+        return this;
+    }
+
+    public QuestSystemBuilder withProgressTargetResolver(ProgressTargetResolver progressTargetResolver) {
+        this.progressTargetResolver = progressTargetResolver;
+        this.progressTargetResolverFactory = null;
+        return this;
+    }
+
+    public QuestSystemBuilder withProgressTargetResolverFactory(
+            Function<QuestUsersStorage, ProgressTargetResolver> progressTargetResolverFactory) {
+        this.progressTargetResolverFactory = progressTargetResolverFactory;
+        this.progressTargetResolver = null;
         return this;
     }
 
@@ -112,7 +128,16 @@ public class QuestSystemBuilder {
 
         QuestUsersStorage questUsersStorage = new QuestUsersStorage(plugin, userDataPersistent);
 
-        questService.initializeQuestManager(questUsersStorage);
+        ProgressTargetResolver resolver;
+        if (progressTargetResolverFactory != null) {
+            resolver = progressTargetResolverFactory.apply(questUsersStorage);
+        } else if (progressTargetResolver != null) {
+            resolver = progressTargetResolver;
+        } else {
+            resolver = ProgressTargetResolver.identity(questUsersStorage);
+        }
+
+        questService.initializeQuestManager(questUsersStorage, resolver);
         QuestManager questManager = questService.getQuestManager();
 
         ObjectiveRegistry objectiveRegistry = questService.getObjectiveRegistry();
@@ -128,7 +153,8 @@ public class QuestSystemBuilder {
                 registration.questClass,
                 registration.completerFactory.apply(questStorage, lifecycleService)));
 
-        return new QuestSystemContext(questService, questStorage, questUsersStorage, questManager, userDataPersistent);
+        return new QuestSystemContext(
+                questService, questStorage, questUsersStorage, questManager, userDataPersistent, resolver);
     }
 
     private static class CompleterRegistration {

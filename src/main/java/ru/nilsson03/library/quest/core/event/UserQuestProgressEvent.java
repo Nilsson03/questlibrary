@@ -1,9 +1,14 @@
 package ru.nilsson03.library.quest.core.event;
 
+import java.util.Optional;
+import java.util.UUID;
+
 import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
+
 import ru.nilsson03.library.quest.objective.Objective;
 import ru.nilsson03.library.quest.objective.goal.Goal;
 import ru.nilsson03.library.quest.quest.simple.BaseQuest;
@@ -19,6 +24,7 @@ public class UserQuestProgressEvent extends Event implements Cancellable {
     private final Goal goal;
     private final long previousValue;
     private final long newValue;
+    private final UUID actorId;
     private boolean cancelled;
 
     public UserQuestProgressEvent(
@@ -28,6 +34,17 @@ public class UserQuestProgressEvent extends Event implements Cancellable {
             Goal goal,
             long previousValue,
             long newValue) {
+        this(questUserData, quest, objective, goal, previousValue, newValue, (Player) null);
+    }
+
+    public UserQuestProgressEvent(
+            QuestUserData questUserData,
+            BaseQuest quest,
+            Objective objective,
+            Goal goal,
+            long previousValue,
+            long newValue,
+            Player actor) {
         super(!Bukkit.isPrimaryThread());
         this.questUserData = questUserData;
         this.quest = quest;
@@ -35,6 +52,25 @@ public class UserQuestProgressEvent extends Event implements Cancellable {
         this.goal = goal;
         this.previousValue = previousValue;
         this.newValue = newValue;
+        this.actorId = actor != null ? actor.getUniqueId() : null;
+    }
+
+    public UserQuestProgressEvent(
+            QuestUserData questUserData,
+            BaseQuest quest,
+            Objective objective,
+            Goal goal,
+            long previousValue,
+            long newValue,
+            UUID actorId) {
+        super(!Bukkit.isPrimaryThread());
+        this.questUserData = questUserData;
+        this.quest = quest;
+        this.objective = objective;
+        this.goal = goal;
+        this.previousValue = previousValue;
+        this.newValue = newValue;
+        this.actorId = actorId;
     }
 
     public QuestUserData getQuestUserData() {
@@ -59,6 +95,20 @@ public class UserQuestProgressEvent extends Event implements Cancellable {
 
     public long getNewValue() {
         return newValue;
+    }
+
+    /**
+     * Absolute progress delta applied by this update ({@code newValue - previousValue}).
+     */
+    public long getDelta() {
+        return newValue - previousValue;
+    }
+
+    /**
+     * Player who caused the progress update, when known (e.g. guild member action).
+     */
+    public Optional<UUID> getActorId() {
+        return Optional.ofNullable(actorId);
     }
 
     @Override

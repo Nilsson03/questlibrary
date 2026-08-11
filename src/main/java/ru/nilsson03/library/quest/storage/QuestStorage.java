@@ -1,7 +1,8 @@
 package ru.nilsson03.library.quest.storage;
 
 import java.io.File;
-import java.nio.file.Paths;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -10,7 +11,6 @@ import org.bukkit.plugin.Plugin;
 
 import com.google.common.base.Preconditions;
 
-import ru.nilsson03.library.bukkit.file.FileHelper;
 import ru.nilsson03.library.bukkit.util.Namespace;
 import ru.nilsson03.library.bukkit.util.log.ConsoleLogger;
 import ru.nilsson03.library.quest.quest.simple.BaseQuest;
@@ -37,31 +37,52 @@ public class QuestStorage {
     }
 
     public void loadQuests() {
-        String questsFolderPath = Paths.get(plugin.getDataFolder()
-                .getPath(), "quests")
-                .toString();
+        loadQuests("quests");
+    }
+
+    public void loadQuests(String relativeFolder) {
+        Objects.requireNonNull(relativeFolder, "relativeFolder cannot be null");
+        Path questsFolderPath = plugin.getDataFolder().toPath().resolve(relativeFolder);
         ConsoleLogger.info(plugin.getName(), "Quests folder Path %s", questsFolderPath);
 
         try {
-            File questsDataFolder = FileHelper.getOrCreateDirectory(questsFolderPath);
+            Files.createDirectories(questsFolderPath);
+            File questsDataFolder = questsFolderPath.toFile();
             List<BaseQuest> loadedQuests = questLoader.loadQuests(questsDataFolder);
-            
+
             List<BaseQuest> validQuests = loadedQuests.stream()
                     .filter(Objects::nonNull)
                     .toList();
-            
-            this.quests.addAll(validQuests);
-            
+
+            registerQuests(validQuests);
+
             int failedCount = loadedQuests.size() - validQuests.size();
             if (failedCount > 0) {
-                ConsoleLogger.warn(plugin.getName(), 
-                    "Failed to load %d quests due to errors", failedCount);
+                ConsoleLogger.warn(plugin.getName(),
+                        "Failed to load %d quests due to errors", failedCount);
             }
-            
-            ConsoleLogger.info(plugin.getName(), "Loaded %s quests", validQuests.size());
+
+            ConsoleLogger.info(plugin.getName(), "Loaded %s quests from %s", validQuests.size(), relativeFolder);
         } catch (Exception exception) {
-            ConsoleLogger.error(plugin.getName(), 
-                "Failed to load quests from %s: %s", questsFolderPath, exception.getMessage());
+            ConsoleLogger.error(plugin.getName(),
+                    "Failed to load quests from %s: %s", questsFolderPath, exception.getMessage());
+        }
+    }
+
+    /**
+     * Registers quest definitions for key lookup (e.g. daily pool into main storage).
+     */
+    public void registerQuests(java.util.Collection<? extends BaseQuest> questsToRegister) {
+        Objects.requireNonNull(questsToRegister, "questsToRegister cannot be null");
+        for (BaseQuest quest : questsToRegister) {
+            if (quest == null) {
+                continue;
+            }
+            boolean alreadyPresent = quests.stream()
+                    .anyMatch(existing -> existing.questUniqueKey().equals(quest.questUniqueKey()));
+            if (!alreadyPresent) {
+                this.quests.add(quest);
+            }
         }
     }
 

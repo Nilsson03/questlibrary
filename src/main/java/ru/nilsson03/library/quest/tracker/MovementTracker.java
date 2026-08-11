@@ -12,6 +12,7 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import ru.nilsson03.library.quest.core.config.Config;
+import ru.nilsson03.library.quest.core.progress.ProgressTargetResolver;
 import ru.nilsson03.library.quest.objective.goal.impl.MovementTypeGoal;
 import ru.nilsson03.library.quest.objective.registry.ObjectiveRegistry;
 import ru.nilsson03.library.quest.user.data.QuestUserData;
@@ -25,15 +26,25 @@ import ru.nilsson03.library.quest.user.storage.QuestUsersStorage;
 public class MovementTracker {
 
     private final Plugin plugin;
-    private final QuestUsersStorage questUsersStorage;
     private final ObjectiveRegistry objectiveRegistry;
+    private final ProgressTargetResolver progressTargetResolver;
     private final Map<UUID, Location> lastLocations = new HashMap<>();
     private BukkitRunnable tracker;
 
     public MovementTracker(Plugin plugin, QuestUsersStorage questUsersStorage, ObjectiveRegistry objectiveRegistry) {
+        this(plugin, questUsersStorage, objectiveRegistry, ProgressTargetResolver.identity(questUsersStorage));
+    }
+
+    public MovementTracker(
+            Plugin plugin,
+            QuestUsersStorage questUsersStorage,
+            ObjectiveRegistry objectiveRegistry,
+            ProgressTargetResolver progressTargetResolver) {
         this.plugin = plugin;
-        this.questUsersStorage = questUsersStorage;
         this.objectiveRegistry = objectiveRegistry;
+        this.progressTargetResolver = progressTargetResolver != null
+                ? progressTargetResolver
+                : ProgressTargetResolver.identity(questUsersStorage);
     }
 
     public void start() {
@@ -76,7 +87,7 @@ public class MovementTracker {
         double distance = lastLocation.distance(currentLocation);
 
         if (distance > 0 && Config.isWorldEnabled(currentLocation.getWorld())) {
-            QuestUserData questUserData = questUsersStorage.getQuestUserData(uuid);
+            QuestUserData questUserData = progressTargetResolver.resolve(player);
 
             if (questUserData != null && questUserData.hasActiveQuestWithCurrentObjectiveType(
                     objectiveRegistry.getObjectiveType("MOVE"))) {
@@ -86,7 +97,8 @@ public class MovementTracker {
                 questUserData.incrementProgressQuestsWithObjectiveType(
                         objectiveRegistry.getObjectiveType("MOVE"),
                         movementType,
-                        roundedDistance);
+                        roundedDistance,
+                        player);
             }
         }
 

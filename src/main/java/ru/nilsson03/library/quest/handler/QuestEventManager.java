@@ -3,6 +3,7 @@ package ru.nilsson03.library.quest.handler;
 import org.bukkit.event.Event;
 import org.bukkit.plugin.Plugin;
 import ru.nilsson03.library.quest.core.manager.QuestManager;
+import ru.nilsson03.library.quest.core.progress.ProgressTargetResolver;
 import ru.nilsson03.library.quest.handler.handlers.QuestEventHandler;
 import ru.nilsson03.library.quest.objective.registry.ObjectiveRegistry;
 import ru.nilsson03.library.quest.objective.registry.ObjectiveType;
@@ -25,12 +26,28 @@ public class QuestEventManager {
     private final BukkitQuestEventAdapter bukkitQuestEventAdapter;
     private final Map<Class<? extends Event>, List<QuestEventHandler<?>>> eventHandlers = new HashMap<>();
     private final Plugin plugin;
+    private final ProgressTargetResolver progressTargetResolver;
 
     public QuestEventManager(Plugin plugin, QuestUsersStorage questUsersStorage, ObjectiveRegistry objectiveRegistry) {
-        this.plugin = plugin;
+        this(plugin, questUsersStorage, objectiveRegistry, ProgressTargetResolver.identity(questUsersStorage));
+    }
 
-        this.questEventHandlers = new QuestEventHandlers(this, questUsersStorage, objectiveRegistry);
+    public QuestEventManager(
+            Plugin plugin,
+            QuestUsersStorage questUsersStorage,
+            ObjectiveRegistry objectiveRegistry,
+            ProgressTargetResolver progressTargetResolver) {
+        this.plugin = plugin;
+        this.progressTargetResolver = progressTargetResolver != null
+                ? progressTargetResolver
+                : ProgressTargetResolver.identity(questUsersStorage);
+
+        this.questEventHandlers = new QuestEventHandlers(this, questUsersStorage, objectiveRegistry, this.progressTargetResolver);
         this.bukkitQuestEventAdapter = new BukkitQuestEventAdapter(plugin, this);
+    }
+
+    public ProgressTargetResolver getProgressTargetResolver() {
+        return progressTargetResolver;
     }
 
     /**

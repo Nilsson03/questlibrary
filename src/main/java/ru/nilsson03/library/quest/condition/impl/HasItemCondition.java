@@ -1,10 +1,10 @@
 package ru.nilsson03.library.quest.condition.impl;
 
-import org.bukkit.Bukkit;
 import org.bukkit.Material;
-import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+
+import ru.nilsson03.library.quest.condition.ConditionContext;
 import ru.nilsson03.library.quest.condition.QuestCondition;
 import ru.nilsson03.library.quest.user.data.QuestUserData;
 
@@ -16,7 +16,7 @@ public class HasItemCondition implements QuestCondition {
     public HasItemCondition(Material itemType, int amount) {
         this(itemType, amount, ConditionType.START);
     }
-    
+
     public HasItemCondition(Material itemType, int amount, ConditionType conditionType) {
         this.itemType = itemType;
         this.amount = amount;
@@ -25,25 +25,29 @@ public class HasItemCondition implements QuestCondition {
 
     @Override
     public boolean isMet(QuestUserData user) {
-        int count = 0;
+        return isMet(ConditionContext.of(user));
+    }
 
-        OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(user.uuid());
+    @Override
+    public boolean isMet(ConditionContext context) {
+        if (context.isGroupOwner() && context.actor().isEmpty()) {
+            return getType() == ConditionType.START;
+        }
 
-        if (!offlinePlayer.hasPlayedBefore() && !offlinePlayer.isOnline()) {
+        Player player = context.playerForChecks().orElse(null);
+        if (player == null) {
             return false;
         }
 
-        Player player = offlinePlayer.getPlayer();
-
-        for (ItemStack item : player.getInventory()
-                                    .getContents()) {
+        int count = 0;
+        for (ItemStack item : player.getInventory().getContents()) {
             if (item != null && item.getType() == itemType) {
                 count += item.getAmount();
             }
         }
         return count >= amount;
     }
-    
+
     @Override
     public ConditionType getType() {
         return conditionType;
