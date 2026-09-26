@@ -91,7 +91,7 @@ public class FileUserPersistent implements UserDataPersistent {
                 BaseQuest quest = progress.quest();
                 Namespace namespace = quest.questUniqueKey();
                 ConfigurationSection configurationSection = config
-                        .createSection("active_progresses." + namespace.getKey());
+                        .createSection("active_progresses." + namespace.getKey() + "." + progress.objective().key());
 
                 progressSaver.save(progress, configurationSection);
             });
@@ -143,14 +143,23 @@ public class FileUserPersistent implements UserDataPersistent {
 
                 for (String keyQuest : configurationSection.getKeys(false)) {
 
-                    ConfigurationSection progressSection = configurationSection.getConfigurationSection(keyQuest);
-                    if (progressSection == null) {
+                    ConfigurationSection questSection = configurationSection.getConfigurationSection(keyQuest);
+                    if (questSection == null) {
                         continue;
                     }
 
-                    QuestProgress questProgress = ((BaseProgressParser) questProgressParser).parse(progressSection,
-                            userData);
-                    questProgressList.add(questProgress);
+                    // Older files stored one objective directly under the quest key.
+                    if (questSection.contains("quest_id")) {
+                        questProgressList.add(((BaseProgressParser) questProgressParser).parse(questSection, userData));
+                        continue;
+                    }
+
+                    for (String objectiveKey : questSection.getKeys(false)) {
+                        ConfigurationSection progressSection = questSection.getConfigurationSection(objectiveKey);
+                        if (progressSection != null) {
+                            questProgressList.add(((BaseProgressParser) questProgressParser).parse(progressSection, userData));
+                        }
+                    }
                 }
             }
 

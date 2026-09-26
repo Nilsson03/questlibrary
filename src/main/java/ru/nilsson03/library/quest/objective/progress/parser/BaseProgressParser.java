@@ -3,7 +3,6 @@ package ru.nilsson03.library.quest.objective.progress.parser;
 import org.bukkit.configuration.ConfigurationSection;
 import ru.nilsson03.library.quest.objective.Objective;
 import ru.nilsson03.library.quest.objective.goal.Goal;
-import ru.nilsson03.library.quest.objective.goal.helper.GoalHelper;
 import ru.nilsson03.library.quest.objective.goal.registry.ObjectiveGoalFactoryRegistry;
 import ru.nilsson03.library.quest.objective.progress.QuestProgress;
 import ru.nilsson03.library.quest.objective.progress.impl.BaseQuestProgress;
@@ -11,19 +10,18 @@ import ru.nilsson03.library.quest.parser.Parser;
 import ru.nilsson03.library.quest.quest.simple.BaseQuest;
 import ru.nilsson03.library.quest.storage.QuestStorage;
 import ru.nilsson03.library.quest.user.data.QuestUserData;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
 public class BaseProgressParser implements Parser<QuestProgress> {
 
-    private final ObjectiveGoalFactoryRegistry objectiveGoalRegistry;
     private final QuestStorage questStorage;
 
     public BaseProgressParser(
             QuestStorage questStorage, ObjectiveGoalFactoryRegistry objectiveGoalRegistry) {
         this.questStorage = questStorage;
-        this.objectiveGoalRegistry = objectiveGoalRegistry;
     }
 
     @Override
@@ -66,7 +64,13 @@ public class BaseProgressParser implements Parser<QuestProgress> {
                     .getKey() + " с UUID игрока " + user.uuid());
         }
 
-        Map<Goal, Long> questProgress = GoalHelper.loadGoalsToProgress(objectiveGoalRegistry, section);
+        // Use the goals from the loaded objective: their display strings do not
+        // contain enough information to recreate every goal type.
+        Map<Goal, Long> questProgress = new HashMap<>();
+        for (Goal goal : objective.goals()) {
+            ConfigurationSection savedGoal = progress.getConfigurationSection(goal.toString());
+            questProgress.put(goal, savedGoal != null ? savedGoal.getLong("value") : 0L);
+        }
 
         return new BaseQuestProgress(user, quest, objective, questProgress);
     }
