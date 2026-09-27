@@ -79,7 +79,7 @@ public class BaseQuestLoader implements QuestLoader {
 
         QuestMeta questMeta = parseMeta(config);
         Set<QuestCondition> conditions = parseConditions(config);
-        List<Objective> objectives = parseObjectives(config);
+        List<Objective> objectives = parseObjectives(config, file, questKey);
         QuestReward reward = parseReward(config);
 
         return new BaseQuestImpl(questNamespace, questMeta, conditions, objectives, reward);
@@ -121,10 +121,11 @@ public class BaseQuestLoader implements QuestLoader {
         return conditions;
     }
 
-    private List<Objective> parseObjectives(ConfigurationSection config) {
+    private List<Objective> parseObjectives(ConfigurationSection config, File file, String questKey) {
         ConfigurationSection objectivesSection = config.getConfigurationSection("objectives");
         if (objectivesSection == null) {
-            ConsoleLogger.error(questService.getPlugin(), "Quest objectives section is missing");
+            ConsoleLogger.error(questService.getPlugin(),
+                    "Quest objectives section is missing: file=%s, quest=%s", file.getName(), questKey);
             return new ArrayList<>();
         }
 
@@ -133,7 +134,9 @@ public class BaseQuestLoader implements QuestLoader {
         for (String objectiveKey : objectivesSection.getKeys(false)) {
             ConfigurationSection objectiveSection = objectivesSection.getConfigurationSection(objectiveKey);
             if (objectiveSection == null) {
-                ConsoleLogger.warn(questService.getPlugin(), "Invalid objective section: %s", objectiveKey);
+                ConsoleLogger.warn(questService.getPlugin(),
+                        "Invalid objective section: file=%s, quest=%s, objective=%s",
+                        file.getName(), questKey, objectiveKey);
                 continue;
             }
 
@@ -143,12 +146,15 @@ public class BaseQuestLoader implements QuestLoader {
                     objectives.add(objective);
                 }
             } catch (Exception e) {
-                ConsoleLogger.error(questService.getPlugin(), "Failed to parse objective '%s': %s", objectiveKey, e.getMessage());
+                ConsoleLogger.error(questService.getPlugin(),
+                        "Failed to parse objective: file=%s, quest=%s, objective=%s, error=%s",
+                        file.getName(), questKey, objectiveKey, e.getMessage());
             }
         }
 
         if (objectives.isEmpty()) {
-            ConsoleLogger.error(questService.getPlugin(), "Quest must have at least one objective");
+            ConsoleLogger.error(questService.getPlugin(),
+                    "Quest must have at least one objective: file=%s, quest=%s", file.getName(), questKey);
             return new ArrayList<>();
         }
 
