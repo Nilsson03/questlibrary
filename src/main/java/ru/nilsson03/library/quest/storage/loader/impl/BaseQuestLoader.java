@@ -53,7 +53,14 @@ public class BaseQuestLoader implements QuestLoader {
 
         try {
             FileConfiguration config = YamlConfiguration.loadConfiguration(file);
-            return parseQuest(config, file);
+            try {
+                return parseQuest(config, file);
+            } catch (RuntimeException exception) {
+                ConsoleLogger.error(questService.getPlugin(),
+                        "Ошибка разбора квеста: file=%s, quest=%s, error=%s",
+                        file.getName(), config.getString("key", "<не указан>"), exception.getMessage());
+                return null;
+            }
         } catch (Exception e) {
             ConsoleLogger.error(questService.getPlugin(), "Failed to load quest from file %s: %s", file.getName(), e.getMessage());
             return null;

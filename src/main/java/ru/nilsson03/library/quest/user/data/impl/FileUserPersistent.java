@@ -26,6 +26,7 @@ import ru.nilsson03.library.quest.storage.QuestStorage;
 import ru.nilsson03.library.quest.user.data.QuestSubjectKind;
 import ru.nilsson03.library.quest.user.data.QuestUserData;
 import ru.nilsson03.library.quest.user.data.UserDataPersistent;
+import ru.nilsson03.library.quest.util.QuestLogContext;
 
 public class FileUserPersistent implements UserDataPersistent {
 
@@ -44,7 +45,7 @@ public class FileUserPersistent implements UserDataPersistent {
         this.directoryHelper = DirectoryHelper.of(plugin);
         this.questStorage = questStorage;
         this.questProgressParser = new BaseProgressParser(questStorage, objectiveGoalFactoryRegistry);
-        this.progressSaver = new BaseProgressSaver();
+        this.progressSaver = new BaseProgressSaver(plugin);
         this.usersDirectory = directoryHelper.getOrLoad("users");
         if (this.usersDirectory == null) {
             throw new NullPointerException("Users directory not found, class FileUserDataStorage");
@@ -150,14 +151,26 @@ public class FileUserPersistent implements UserDataPersistent {
 
                     // Older files stored one objective directly under the quest key.
                     if (questSection.contains("quest_id")) {
-                        questProgressList.add(((BaseProgressParser) questProgressParser).parse(questSection, userData));
+                        try {
+                            questProgressList.add(((BaseProgressParser) questProgressParser).parse(questSection, userData));
+                        } catch (Exception exception) {
+                            ConsoleLogger.warn(plugin,
+                                    "Не удалось загрузить прогресс: quest=%s, player=%s, objective=legacy: %s",
+                                    keyQuest, QuestLogContext.player(uuid), exception.getMessage());
+                        }
                         continue;
                     }
 
                     for (String objectiveKey : questSection.getKeys(false)) {
                         ConfigurationSection progressSection = questSection.getConfigurationSection(objectiveKey);
                         if (progressSection != null) {
-                            questProgressList.add(((BaseProgressParser) questProgressParser).parse(progressSection, userData));
+                            try {
+                                questProgressList.add(((BaseProgressParser) questProgressParser).parse(progressSection, userData));
+                            } catch (Exception exception) {
+                                ConsoleLogger.warn(plugin,
+                                        "Не удалось загрузить прогресс: quest=%s, player=%s, objective=%s: %s",
+                                        keyQuest, QuestLogContext.player(uuid), objectiveKey, exception.getMessage());
+                            }
                         }
                     }
                 }

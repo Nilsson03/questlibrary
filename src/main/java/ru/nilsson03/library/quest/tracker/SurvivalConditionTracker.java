@@ -47,7 +47,13 @@ public class SurvivalConditionTracker {
             @Override
             public void run() {
                 for (Player player : Bukkit.getOnlinePlayers()) {
-                    checkPlayerSurvivalConditions(player);
+                    try {
+                        checkPlayerSurvivalConditions(player);
+                    } catch (RuntimeException exception) {
+                        ConsoleLogger.error(plugin,
+                                "Ошибка трекера SURVIVAL_CONDITION: player=%s, uuid=%s, error=%s",
+                                player.getName(), player.getUniqueId(), exception.getMessage());
+                    }
                 }
             }
         };

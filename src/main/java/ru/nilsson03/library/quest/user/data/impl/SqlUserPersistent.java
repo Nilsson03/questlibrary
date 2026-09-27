@@ -24,6 +24,7 @@ import ru.nilsson03.library.quest.quest.simple.BaseQuest;
 import ru.nilsson03.library.quest.storage.QuestStorage;
 import ru.nilsson03.library.quest.user.data.QuestSubjectKind;
 import ru.nilsson03.library.quest.user.data.QuestUserData;
+import ru.nilsson03.library.quest.util.QuestLogContext;
 import ru.nilsson03.library.quest.user.data.UserDataPersistent;
 
 public class SqlUserPersistent implements UserDataPersistent {
@@ -292,11 +293,19 @@ public class SqlUserPersistent implements UserDataPersistent {
 
                     try (PreparedStatement goalStmt = connection.prepareStatement(insertGoalSql)) {
                         for (Goal goal : progress.objective().goals()) {
-                            goalStmt.setInt(1, progressId);
-                            goalStmt.setString(2, goal.toString());
-                            goalStmt.setLong(3, progress.getValue(goal));
-                            goalStmt.setLong(4, goal.targetValue());
-                            goalStmt.addBatch();
+                            try {
+                                goalStmt.setInt(1, progressId);
+                                goalStmt.setString(2, goal.toString());
+                                goalStmt.setLong(3, progress.getValue(goal));
+                                goalStmt.setLong(4, goal.targetValue());
+                                goalStmt.addBatch();
+                            } catch (RuntimeException exception) {
+                                ConsoleLogger.error(plugin,
+                                        "Не удалось сохранить цель: quest=%s, objective=%s, player=%s, goal=%s: %s",
+                                        progress.quest().questUniqueKey().getKey(), progress.objective().key(),
+                                        QuestLogContext.player(userData.uuid()), goal != null ? goal.getClass().getSimpleName() : "null",
+                                        exception.getMessage());
+                            }
                         }
                         goalStmt.executeBatch();
                     }
@@ -398,7 +407,9 @@ public class SqlUserPersistent implements UserDataPersistent {
                         progressList.add(progress);
                     }
                 } catch (Exception e) {
-                    ConsoleLogger.warn(plugin, "Failed to load progress for quest '%s': %s", questKey, e.getMessage());
+                    ConsoleLogger.warn(plugin,
+                            "Не удалось загрузить прогресс: quest=%s, objective=%s, player=%s: %s",
+                            questKey, objectiveKey, QuestLogContext.player(uuid), e.getMessage());
                 }
             }
         }

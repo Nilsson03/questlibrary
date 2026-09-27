@@ -2,13 +2,18 @@ package ru.nilsson03.library.quest.objective.goal.impl;
 
 import org.bukkit.Material;
 
-import lombok.AllArgsConstructor;
 import ru.nilsson03.library.quest.objective.goal.sub.ObjectiveGoal;
 
-@AllArgsConstructor
-public class  MaterialGoal implements ObjectiveGoal {
+import java.util.Objects;
+
+public class MaterialGoal implements ObjectiveGoal {
     private final Material targetType;
     private final long targetValue;
+
+    public MaterialGoal(Material targetType, long targetValue) {
+        this.targetType = Objects.requireNonNull(targetType, "Material goal target cannot be null");
+        this.targetValue = targetValue;
+    }
 
     @Override
     public boolean matches(Object target) {

@@ -17,6 +17,7 @@ import ru.nilsson03.library.quest.objective.goal.impl.MovementTypeGoal;
 import ru.nilsson03.library.quest.objective.registry.ObjectiveRegistry;
 import ru.nilsson03.library.quest.user.data.QuestUserData;
 import ru.nilsson03.library.quest.user.storage.QuestUsersStorage;
+import ru.nilsson03.library.bukkit.util.log.ConsoleLogger;
 
 /**
  * Трекер движения игроков через таймер.
@@ -52,7 +53,13 @@ public class MovementTracker {
             @Override
             public void run() {
                 for (Player player : Bukkit.getOnlinePlayers()) {
-                    checkPlayerMovement(player);
+                    try {
+                        checkPlayerMovement(player);
+                    } catch (RuntimeException exception) {
+                        ConsoleLogger.error(plugin,
+                                "Ошибка трекера MOVE: player=%s, uuid=%s, error=%s",
+                                player.getName(), player.getUniqueId(), exception.getMessage());
+                    }
                 }
             }
         };

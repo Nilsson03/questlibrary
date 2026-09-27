@@ -71,9 +71,17 @@ public class ObjectiveGoalFactoryRegistry {
             Object materialObj = parameters.get("material");
             Material material;
             if (materialObj instanceof String) {
-                material = Material.valueOf((String) materialObj);
+                String materialName = (String) materialObj;
+                try {
+                    material = Material.valueOf(materialName.toUpperCase());
+                } catch (IllegalArgumentException exception) {
+                    throw new IllegalArgumentException("Неизвестный материал '" + materialName + "'", exception);
+                }
             } else {
                 material = (Material) materialObj;
+            }
+            if (material == null) {
+                throw new IllegalArgumentException("Материал цели не указан или имеет неверное значение");
             }
             long targetValue = Long.parseLong(parameters.get("value")
                     .toString());

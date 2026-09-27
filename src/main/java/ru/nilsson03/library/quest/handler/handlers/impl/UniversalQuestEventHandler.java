@@ -22,6 +22,7 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.PlayerEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerShearEntityEvent;
+import ru.nilsson03.library.bukkit.util.log.ConsoleLogger;
 
 import ru.nilsson03.library.quest.core.config.Config;
 import ru.nilsson03.library.quest.core.progress.ProgressTargetResolver;
@@ -83,7 +84,14 @@ public class UniversalQuestEventHandler<T extends Event> implements QuestEventHa
 
         QuestUserData questUserData = progressTargetResolver.resolve(player);
         if (questUserData != null) {
-            eventHandlerLogic.accept(event, player, questUserData);
+            try {
+                eventHandlerLogic.accept(event, player, questUserData);
+            } catch (RuntimeException exception) {
+                ConsoleLogger.error("questlibrary",
+                        "Ошибка обработки цели: event=%s, player=%s, uuid=%s, error=%s",
+                        event.getClass().getSimpleName(), player.getName(), player.getUniqueId(), exception.getMessage());
+                throw exception;
+            }
         }
     }
 

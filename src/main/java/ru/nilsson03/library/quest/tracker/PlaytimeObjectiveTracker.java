@@ -18,6 +18,7 @@ import ru.nilsson03.library.quest.objective.registry.ObjectiveType;
 import ru.nilsson03.library.quest.quest.simple.BaseQuest;
 import ru.nilsson03.library.quest.user.data.QuestUserData;
 import ru.nilsson03.library.quest.user.storage.QuestUsersStorage;
+import ru.nilsson03.library.bukkit.util.log.ConsoleLogger;
 
 public class PlaytimeObjectiveTracker {
 
@@ -76,30 +77,36 @@ public class PlaytimeObjectiveTracker {
 
     private void processPlaytime() {
         for (Player player : Bukkit.getOnlinePlayers()) {
-            if (!Config.isWorldEnabled(player.getWorld())) {
-                continue;
+            try {
+                if (!Config.isWorldEnabled(player.getWorld())) {
+                    continue;
+                }
+
+                UUID uuid = player.getUniqueId();
+
+                QuestUserData questUserData = progressTargetResolver.resolve(player);
+                if (questUserData == null) {
+                    continue;
+                }
+
+                Collection<QuestProgress> activePlaytimeProgress = questUserData
+                        .getProgressByObjectiveType(playtimeObjectiveType);
+
+                if (activePlaytimeProgress.isEmpty()) {
+                    questStartTicks.remove(uuid);
+                    lastKnownTicks.remove(uuid);
+                    pendingTicks.remove(uuid);
+                    continue;
+                }
+
+                int currentTicks = player.getStatistic(Statistic.PLAY_ONE_MINUTE);
+                ensureQuestStartTimes(uuid, currentTicks, activePlaytimeProgress);
+                updatePlayerPlaytime(questUserData, player, uuid, currentTicks);
+            } catch (RuntimeException exception) {
+                ConsoleLogger.error(plugin,
+                        "Ошибка трекера PLAYTIME: player=%s, uuid=%s, error=%s",
+                        player.getName(), player.getUniqueId(), exception.getMessage());
             }
-
-            UUID uuid = player.getUniqueId();
-
-            QuestUserData questUserData = progressTargetResolver.resolve(player);
-            if (questUserData == null) {
-                continue;
-            }
-
-            Collection<QuestProgress> activePlaytimeProgress = questUserData
-                    .getProgressByObjectiveType(playtimeObjectiveType);
-
-            if (activePlaytimeProgress.isEmpty()) {
-                questStartTicks.remove(uuid);
-                lastKnownTicks.remove(uuid);
-                pendingTicks.remove(uuid);
-                continue;
-            }
-
-            int currentTicks = player.getStatistic(Statistic.PLAY_ONE_MINUTE);
-            ensureQuestStartTimes(uuid, currentTicks, activePlaytimeProgress);
-            updatePlayerPlaytime(questUserData, player, uuid, currentTicks);
         }
 
         cleanupOfflinePlayers();

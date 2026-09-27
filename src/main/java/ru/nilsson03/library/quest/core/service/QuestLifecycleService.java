@@ -7,6 +7,7 @@ import java.util.function.Consumer;
 import org.bukkit.Bukkit;
 
 import ru.nilsson03.library.NPlugin;
+import ru.nilsson03.library.bukkit.util.log.ConsoleLogger;
 import ru.nilsson03.library.quest.condition.ConditionContext;
 import ru.nilsson03.library.quest.condition.QuestCondition.ConditionType;
 import ru.nilsson03.library.quest.core.event.UserCompleteQuestEvent;
@@ -17,6 +18,7 @@ import ru.nilsson03.library.quest.quest.completer.QuestCompleter;
 import ru.nilsson03.library.quest.quest.completer.registry.QuestCompleterRegistry;
 import ru.nilsson03.library.quest.quest.simple.BaseQuest;
 import ru.nilsson03.library.quest.user.data.QuestUserData;
+import ru.nilsson03.library.quest.util.QuestLogContext;
 
 public class QuestLifecycleService {
 
@@ -40,27 +42,42 @@ public class QuestLifecycleService {
             return;
         }
 
-        boolean unmetPrerequisite = quest.conditions()
-                .stream()
-                .filter(condition -> condition.getType() == ConditionType.START)
-                .allMatch(condition -> condition.isMet(ConditionContext.of(user)));
+        boolean unmetPrerequisite;
+        try {
+            unmetPrerequisite = quest.conditions()
+                    .stream()
+                    .filter(condition -> condition.getType() == ConditionType.START)
+                    .allMatch(condition -> condition.isMet(ConditionContext.of(user)));
+        } catch (RuntimeException exception) {
+            logQuestError("Не удалось проверить условия запуска", user, quest, exception);
+            throw exception;
+        }
 
         if (!unmetPrerequisite) {
             return;
         }
 
         UserQuestStartEvent event = new UserQuestStartEvent(plugin, user, quest);
-        Bukkit.getPluginManager()
-                .callEvent(event);
+        try {
+            Bukkit.getPluginManager().callEvent(event);
+        } catch (RuntimeException exception) {
+            logQuestError("Ошибка обработчика события запуска квеста", user, quest, exception);
+            throw exception;
+        }
         if (event.isCancelled()) {
             return;
         }
 
-        Set<QuestProgress> objectiveProgressSet = questProgressService.createEmptyProgressForQuest(user, quest);
-        user.addNewProgressFromSet(objectiveProgressSet);
+        try {
+            Set<QuestProgress> objectiveProgressSet = questProgressService.createEmptyProgressForQuest(user, quest);
+            user.addNewProgressFromSet(objectiveProgressSet);
 
-        if (questUserDataConsumer != null) {
-            questUserDataConsumer.accept(user);
+            if (questUserDataConsumer != null) {
+                questUserDataConsumer.accept(user);
+            }
+        } catch (RuntimeException exception) {
+            logQuestError("Не удалось создать прогресс квеста", user, quest, exception);
+            throw exception;
         }
     }
 
@@ -74,7 +91,13 @@ public class QuestLifecycleService {
             return CompleteStatus.ALREADY_COMPLETE;
         }
 
-        List<QuestProgress> allProgress = user.getAllProgressForQuest(quest);
+        List<QuestProgress> allProgress;
+        try {
+            allProgress = user.getAllProgressForQuest(quest);
+        } catch (RuntimeException exception) {
+            logQuestError("Не удалось получить прогресс квеста", user, quest, exception);
+            throw exception;
+        }
 
         boolean allObjectivesCompleted = allProgress.stream()
                 .allMatch(QuestProgress::isCompleted);
@@ -84,7 +107,12 @@ public class QuestLifecycleService {
         }
 
         UserCompleteQuestEvent event = new UserCompleteQuestEvent(plugin, user, quest, CompleteStatus.SUCCESS);
-        Bukkit.getPluginManager().callEvent(event);
+        try {
+            Bukkit.getPluginManager().callEvent(event);
+        } catch (RuntimeException exception) {
+            logQuestError("Ошибка обработчика события завершения квеста", user, quest, exception);
+            throw exception;
+        }
 
         if (event.isCancelled()) {
             return CompleteStatus.CANCELLED;
@@ -98,12 +126,25 @@ public class QuestLifecycleService {
         user.addCompletedQuest(quest);
         user.removeQuestProgress(quest);
 
-        completer.completeQuest(user, quest, questUserDataConsumer);
+        try {
+            completer.completeQuest(user, quest, questUserDataConsumer);
+        } catch (RuntimeException exception) {
+            logQuestError("Ошибка completer-а или выдачи награды", user, quest, exception);
+            throw exception;
+        }
 
         return CompleteStatus.SUCCESS;
     }
 
     public CompleteStatus completeQuest(QuestUserData user, BaseQuest quest) {
         return completeQuest(user, quest, null);
+    }
+
+    private void logQuestError(String message, QuestUserData user, BaseQuest quest, RuntimeException exception) {
+        ConsoleLogger.error(plugin, "%s: quest=%s, player=%s, error=%s",
+                message,
+                quest != null && quest.questUniqueKey() != null ? quest.questUniqueKey().getKey() : "null",
+                user != null ? QuestLogContext.player(user.uuid()) : "null",
+                exception.getMessage());
     }
 }
