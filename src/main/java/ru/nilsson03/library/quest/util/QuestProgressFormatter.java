@@ -27,6 +27,7 @@ import ru.nilsson03.library.quest.objective.goal.impl.MaterialGoal;
 import ru.nilsson03.library.quest.objective.goal.impl.MovementTypeGoal;
 import ru.nilsson03.library.quest.objective.goal.impl.NumericGoal;
 import ru.nilsson03.library.quest.objective.goal.impl.PrerequisiteQuestGoal;
+import ru.nilsson03.library.quest.objective.goal.impl.SmithingGoal;
 import ru.nilsson03.library.quest.objective.goal.impl.SubmitItemGoal;
 import ru.nilsson03.library.quest.objective.goal.impl.SurvivalConditionGoal;
 import ru.nilsson03.library.quest.objective.progress.QuestProgress;
@@ -58,6 +59,11 @@ public class QuestProgressFormatter {
             String format = ObjectiveFormatter.getFormatFromConfig("PREREQUISITE_QUEST");
             return format.replace("{quest}", prerequisiteGoal.getQuestName())
                          .replace("{target}", prerequisiteGoal.getVillagerName());
+        });
+
+        registerGoalFormatter(SmithingGoal.class, goal -> {
+            SmithingGoal smithingGoal = (SmithingGoal) goal;
+            return smithingGoal.input().getType().name() + " → " + smithingGoal.result().getType().name();
         });
         
         registerGoalFormatter(MaterialGoal.class, goal -> {

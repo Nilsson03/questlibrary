@@ -49,6 +49,7 @@ import ru.nilsson03.library.quest.handler.wrapper.TntIgniteWrapper;
 import ru.nilsson03.library.quest.objective.registry.ObjectiveRegistry;
 import ru.nilsson03.library.quest.core.progress.ProgressTargetResolver;
 import ru.nilsson03.library.quest.user.data.QuestUserData;
+import ru.nilsson03.library.quest.objective.goal.impl.SmithingGoal;
 import ru.nilsson03.library.quest.user.storage.QuestUsersStorage;
 
 public class QuestEventHandlers {
@@ -454,6 +455,17 @@ public class QuestEventHandlers {
                     }
                 });
 
+        QuestEventHandler<InventoryClickEvent> smithingHandler = universal((event, actor, questUserData) -> {
+            if (event.getInventory().getType() != InventoryType.SMITHING
+                    || event.getSlotType() != InventoryType.SlotType.RESULT
+                    || event.getCurrentItem() == null
+                    || event.getCurrentItem().getType() == Material.AIR) return;
+            ItemStack input = event.getInventory().getItem(0);
+            questUserData.incrementProgressQuestsWithObjectiveType(
+                    objectiveRegistry.getObjectiveType("SMITHING"),
+                    new SmithingGoal.SmithingResult(input, event.getCurrentItem()), 1, actor);
+        });
+
         QuestEventHandler<FurnaceExtractEvent> useFurnaceHandler = universal((event, actor, questUserData) -> {
                     questUserData.incrementProgressQuestsWithValueGoals(objectiveRegistry.getObjectiveType("USE_FURNACE"), 1, actor);
                 });
@@ -478,6 +490,7 @@ public class QuestEventHandlers {
                 put("DEATH", entityDeathEventQuestEventHandlerDeath);
                 put("BLOCK_SHIELD", blockShieldHandler);
                 put("BREED_ENTITY", breedEntityHandler);
+                put("SMITHING", smithingHandler);
                 put("CURE_VILLAGER", cureVillagerHandler);
                 put("USE_TOTEM", useTotemHandler);
                 put("SHEAR_SHEEP", shearSheepHandler);

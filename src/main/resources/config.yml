@@ -39,3 +39,4 @@ objective_formats:
   BLOCK_DAMAGE_SHIELD: "Заблокировано урона щитом"
   USE_FURNACE: "Использовано печь"
   PREREQUISITE_QUEST: "Пройти поручение {quest} у {target}"
+  SMITHING: "Улучшение предмета в кузнице"

@@ -15,6 +15,7 @@ import ru.nilsson03.library.quest.objective.goal.factory.impl.MovementTypeGoalFa
 import ru.nilsson03.library.quest.objective.goal.factory.impl.PrerequisiteQuestGoalFactory;
 import ru.nilsson03.library.quest.objective.goal.factory.impl.SubmitItemGoalFactory;
 import ru.nilsson03.library.quest.objective.goal.factory.impl.SurvivalConditionGoalFactory;
+import ru.nilsson03.library.quest.objective.goal.factory.impl.SmithingGoalFactory;
 import ru.nilsson03.library.quest.objective.goal.impl.EntityTypeGoal;
 import ru.nilsson03.library.quest.objective.goal.impl.ItemStackGoal;
 import ru.nilsson03.library.quest.objective.goal.impl.MaterialGoal;
@@ -83,5 +84,6 @@ public class ObjectiveGoalFactoryRegistry {
         registerFactory("survivalCondition", new SurvivalConditionGoalFactory());
         registerFactory("submitItem", new SubmitItemGoalFactory());
         registerFactory("prerequisiteQuest", new PrerequisiteQuestGoalFactory());
+        registerFactory("smithing", new SmithingGoalFactory());
     }
 }

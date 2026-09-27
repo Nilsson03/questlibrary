@@ -7,6 +7,7 @@ import ru.nilsson03.library.quest.exception.QuestAlreadyCompletedException;
 import ru.nilsson03.library.quest.exception.UserAlreadyHasQuestProgressException;
 import ru.nilsson03.library.quest.objective.Objective;
 import ru.nilsson03.library.quest.objective.goal.Goal;
+import ru.nilsson03.library.quest.objective.goal.impl.PrerequisiteQuestGoal;
 import ru.nilsson03.library.quest.objective.progress.QuestProgress;
 import ru.nilsson03.library.quest.objective.registry.ObjectiveType;
 import ru.nilsson03.library.quest.quest.simple.BaseQuest;
@@ -49,6 +50,7 @@ public class BaseQuestUserData implements QuestUserData {
         this.subjectKind = subjectKind != null ? subjectKind : QuestSubjectKind.PLAYER;
         this.completeQuests = Collections.synchronizedList(Objects.requireNonNull(completeQuests, "Complete quests cant be null"));
         this.questsProgress = Collections.synchronizedList(Objects.requireNonNull(objectiveProgresses, "Objective progresses cant be null"));
+        reconcileCompletedPrerequisiteGoals(this.questsProgress);
     }
 
     /**
@@ -317,6 +319,28 @@ public class BaseQuestUserData implements QuestUserData {
 
     public synchronized void addActiveQuests(List<QuestProgress> objectiveProgresses) {
         this.questsProgress.addAll(objectiveProgresses);
+        reconcileCompletedPrerequisiteGoals(objectiveProgresses);
+    }
+
+    /**
+     * Migrates active prerequisite objectives created before the prerequisite
+     * tracker fix. Such objectives may still have zero progress even though the
+     * required quest is already in the user's completed quest list.
+     */
+    private void reconcileCompletedPrerequisiteGoals(List<QuestProgress> progressList) {
+        Set<String> completedQuestIds = completeQuests.stream()
+                .map(quest -> quest.questUniqueKey().getKey())
+                .collect(Collectors.toSet());
+
+        for (QuestProgress progress : progressList) {
+            for (Goal goal : progress.objective().goals()) {
+                if (goal instanceof PrerequisiteQuestGoal prerequisiteGoal
+                        && completedQuestIds.contains(prerequisiteGoal.getQuestId())
+                        && progress.getValue(goal) < goal.targetValue()) {
+                    progress.setProgressDirectly(goal, goal.targetValue());
+                }
+            }
+        }
     }
 
     @Override

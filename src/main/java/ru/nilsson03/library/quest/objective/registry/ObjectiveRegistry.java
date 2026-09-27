@@ -98,6 +98,7 @@ public class ObjectiveRegistry {
         registerObjectiveType(ObjectiveType.create("BLOCK_DAMAGE_SHIELD", EntityDamageByEntityEvent.class));
         registerObjectiveType(ObjectiveType.create("FILL_COMPOSTER", PlayerInteractEvent.class));
         registerObjectiveType(ObjectiveType.create("PREREQUISITE_QUEST", UserCompleteQuestEvent.class));
+        registerObjectiveType(ObjectiveType.create("SMITHING", InventoryClickEvent.class));
         
         objectiveFormatter.onRegistryInit(this);
     }
