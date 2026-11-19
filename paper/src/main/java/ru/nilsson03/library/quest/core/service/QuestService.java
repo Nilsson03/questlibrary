@@ -1,0 +1,110 @@
+package ru.nilsson03.library.quest.core.service;
+
+import java.util.Objects;
+
+import org.bukkit.Bukkit;
+
+import lombok.Getter;
+import org.bukkit.plugin.Plugin;
+import ru.nilsson03.library.quest.condition.parser.registry.ConditionParserRegistry;
+import ru.nilsson03.library.quest.core.manager.QuestManager;
+import ru.nilsson03.library.quest.core.progress.ProgressTargetResolver;
+import ru.nilsson03.library.quest.meta.parser.registry.MetaParserRegistry;
+import ru.nilsson03.library.quest.objective.registry.ObjectiveRegistry;
+import ru.nilsson03.library.quest.reward.parser.registry.RewardParserRegistry;
+import ru.nilsson03.library.quest.user.storage.QuestUsersStorage;
+
+/**
+ * Сервис, представляющих доступ к QuestManager и сопутствующим системам
+ *
+ * @see QuestManager
+ * @see ConditionParserRegistry
+ */
+@Getter
+public class QuestService {
+
+    private final ConditionParserRegistry conditionParserRegistry;
+    private final MetaParserRegistry metaParserRegistry;
+    private final RewardParserRegistry rewardParserRegistry;
+    private final ObjectiveRegistry objectiveRegistry;
+    private final Plugin plugin;
+    private QuestManager questManager;
+
+    /**
+     * @param plugin                        плагин, для которого инициализируется
+     *                                      сервис квестов
+     * @param questUsersStorage             реализация хранения данных пользователей
+     * @param customConditionParserRegistry кастомный регистер парсеров условий для
+     *                                      выполнения квестов
+     * @param customMetaParserRegistry      кастомный регистер парсеров метаданных
+     *                                      квестов
+     * @param customRewardParserRegistry    кастомный регистер парсеров наград
+     *                                      квестов
+     */
+    public QuestService(
+            Plugin plugin, QuestUsersStorage questUsersStorage,
+            ConditionParserRegistry customConditionParserRegistry,
+            MetaParserRegistry customMetaParserRegistry,
+            RewardParserRegistry customRewardParserRegistry) {
+        this.plugin = Objects.requireNonNull(plugin, "plugin cannot be null");
+
+        this.conditionParserRegistry = Objects.requireNonNull(customConditionParserRegistry,
+                "customConditionParserRegistry cannot be null");
+        this.metaParserRegistry = Objects.requireNonNull(customMetaParserRegistry,
+                "customMetaParserRegistry cannot be null");
+        this.rewardParserRegistry = Objects.requireNonNull(customRewardParserRegistry,
+                "customRewardParserRegistry cannot be null");
+        this.objectiveRegistry = new ObjectiveRegistry();
+
+        this.objectiveRegistry.onRegistryInit();
+        this.conditionParserRegistry.onRegistryInit();
+        this.metaParserRegistry.onRegistryInit();
+        this.rewardParserRegistry.onRegistryInit();
+
+        if (questUsersStorage != null) {
+            this.questManager = new QuestManager(plugin, questUsersStorage, objectiveRegistry);
+            Bukkit.getPluginManager().registerEvents(this.questManager, plugin);
+        }
+
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            this.conditionParserRegistry.onRegistryAfterInit();
+            this.metaParserRegistry.onRegistryAfterInit();
+            this.rewardParserRegistry.onRegistryAfterInit();
+        }, 300);
+    }
+
+    public QuestService(Plugin plugin, QuestUsersStorage questUsersStorage) {
+        this.plugin = Objects.requireNonNull(plugin, "plugin cannot be null");
+
+        this.objectiveRegistry = new ObjectiveRegistry();
+        this.conditionParserRegistry = new ConditionParserRegistry(plugin);
+        this.metaParserRegistry = new MetaParserRegistry(plugin);
+        this.rewardParserRegistry = new RewardParserRegistry(plugin);
+
+        this.objectiveRegistry.onRegistryInit();
+        this.conditionParserRegistry.onRegistryInit();
+        this.metaParserRegistry.onRegistryInit();
+        this.rewardParserRegistry.onRegistryInit();
+
+        if (questUsersStorage != null) {
+            this.questManager = new QuestManager(plugin, questUsersStorage, objectiveRegistry);
+        }
+    }
+
+    public void initializeQuestManager(QuestUsersStorage questUsersStorage) {
+        initializeQuestManager(questUsersStorage, ProgressTargetResolver.identity(questUsersStorage));
+    }
+
+    public void initializeQuestManager(
+            QuestUsersStorage questUsersStorage, ProgressTargetResolver progressTargetResolver) {
+        if (this.questManager == null) {
+            this.questManager = new QuestManager(plugin, questUsersStorage, objectiveRegistry, progressTargetResolver);
+        }
+    }
+
+    public void registerEventHandlers() {
+        if (questManager != null) {
+            questManager.registerEventHandlers();
+        }
+    }
+}
