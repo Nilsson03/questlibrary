@@ -1,0 +1,587 @@
+package ru.nilsson03.library.quest.user.data.impl;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+
+import javax.sql.DataSource;
+import ru.nilsson03.library.quest.util.sql.QuestConnections;
+import org.bukkit.plugin.Plugin;
+import ru.nilsson03.library.quest.util.QuestLog;
+import ru.nilsson03.library.quest.objective.goal.Goal;
+import ru.nilsson03.library.quest.objective.progress.QuestProgress;
+import ru.nilsson03.library.quest.objective.progress.impl.BaseQuestProgress;
+import ru.nilsson03.library.quest.quest.simple.BaseQuest;
+import ru.nilsson03.library.quest.storage.QuestStorage;
+import ru.nilsson03.library.quest.user.data.QuestSubjectKind;
+import ru.nilsson03.library.quest.user.data.QuestUserData;
+import ru.nilsson03.library.quest.util.QuestLogContext;
+import ru.nilsson03.library.quest.user.data.UserDataPersistent;
+
+public class SqlUserPersistent implements UserDataPersistent {
+
+    private final Plugin plugin;
+    private final DataSource dataSource;
+    private final QuestStorage questStorage;
+
+    private final String QUEST_USERS_TABLE;
+    private final String QUEST_COMPLETED_TABLE;
+    private final String QUEST_ACITVE_PROGRESS_TABLE;
+    private final String QUEST_PROGRESS_GOALS_TABLE;
+    private final String QUEST_RECEIPTS_REWARDS_TABLE;
+
+    public SqlUserPersistent(Plugin plugin, QuestStorage questStorage) {
+        this(plugin, questStorage, null);
+    }
+
+    public SqlUserPersistent(Plugin plugin, QuestStorage questStorage, DataSource dataSource) {
+        this.dataSource = dataSource;
+        this.plugin = plugin;
+        this.questStorage = questStorage;
+        this.QUEST_USERS_TABLE = plugin.getName() + "_quest_users";
+        this.QUEST_COMPLETED_TABLE = plugin.getName() + "_quest_completed";
+        this.QUEST_ACITVE_PROGRESS_TABLE = plugin.getName() + "_quest_active_progress";
+        this.QUEST_PROGRESS_GOALS_TABLE = plugin.getName() + "_quest_progress_goals";
+        this.QUEST_RECEIPTS_REWARDS_TABLE = plugin.getName() + "_quest_receipts_rewards";
+        initializeTables();
+        QuestLog.info(plugin, "SQL user persistent initialized");
+    }
+
+    private Connection getConnection() throws SQLException {
+        return QuestConnections.open(plugin, dataSource);
+    }
+
+    private void initializeTables() {
+        try (Connection connection = getConnection()) {
+            dropReceiptsRewardsTable(connection);
+
+            createUsersTable(connection);
+            QuestLog.info(plugin, "Created table: %s", QUEST_USERS_TABLE);
+
+            createCompletedQuestsTable(connection);
+            QuestLog.info(plugin, "Created table: %s", QUEST_COMPLETED_TABLE);
+
+            createActiveProgressTable(connection);
+            QuestLog.info(plugin, "Created table: %s", QUEST_ACITVE_PROGRESS_TABLE);
+
+            createProgressGoalsTable(connection);
+            QuestLog.info(plugin, "Created table: %s", QUEST_PROGRESS_GOALS_TABLE);
+
+            QuestLog.info(plugin, "SQL tables for quest user data initialized successfully.");
+        } catch (SQLException e) {
+            throw new IllegalStateException("Failed to initialize quest SQL tables for " + plugin.getName(), e);
+        }
+    }
+
+    private void createUsersTable(Connection connection) throws SQLException {
+        String sql = String.format("""
+            CREATE TABLE IF NOT EXISTS %s (
+            uuid VARCHAR(36) PRIMARY KEY,
+            subject_kind VARCHAR(16) NOT NULL DEFAULT 'PLAYER',
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+            )
+        """, QUEST_USERS_TABLE);
+        try (Statement statement = connection.createStatement()) {
+            statement.execute(sql);
+        }
+        ensureSubjectKindColumn(connection);
+    }
+
+    private void ensureSubjectKindColumn(Connection connection) {
+        try (Statement statement = connection.createStatement()) {
+            statement.execute(String.format(
+                    "ALTER TABLE %s ADD COLUMN subject_kind VARCHAR(16) NOT NULL DEFAULT 'PLAYER'",
+                    QUEST_USERS_TABLE));
+        } catch (SQLException ignored) {
+
+        }
+    }
+
+    private void createCompletedQuestsTable(Connection connection) throws SQLException {
+        String sql = String.format("""
+                CREATE TABLE IF NOT EXISTS %s (
+                    id INTEGER PRIMARY KEY AUTO_INCREMENT,
+                    user_uuid VARCHAR(36) NOT NULL,
+                    quest_key VARCHAR(255) NOT NULL,
+                    completed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE (user_uuid, quest_key),
+                    FOREIGN KEY (user_uuid) REFERENCES %s(uuid) ON DELETE CASCADE
+                )
+                """, QUEST_COMPLETED_TABLE, QUEST_USERS_TABLE);
+        try (Statement statement = connection.createStatement()) {
+            statement.execute(sql);
+        }
+    }
+
+    private void createActiveProgressTable(Connection connection) throws SQLException {
+        String sql = String.format("""
+                CREATE TABLE IF NOT EXISTS %s (
+                    id INTEGER PRIMARY KEY AUTO_INCREMENT,
+                    user_uuid VARCHAR(36) NOT NULL,
+                    quest_key VARCHAR(255) NOT NULL,
+                    objective_key VARCHAR(255) NOT NULL,
+                    objective_type VARCHAR(100) NOT NULL,
+                    started_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE (user_uuid, quest_key, objective_key),
+                    FOREIGN KEY (user_uuid) REFERENCES %s(uuid) ON DELETE CASCADE
+                )
+                """, QUEST_ACITVE_PROGRESS_TABLE, QUEST_USERS_TABLE);
+        try (Statement statement = connection.createStatement()) {
+            statement.execute(sql);
+        }
+    }
+
+    private void createProgressGoalsTable(Connection connection) throws SQLException {
+        String sql = String.format("""
+                CREATE TABLE IF NOT EXISTS %s (
+                    id INTEGER PRIMARY KEY AUTO_INCREMENT,
+                    progress_id INTEGER NOT NULL,
+                    goal_key VARCHAR(255) NOT NULL,
+                    current_value BIGINT NOT NULL DEFAULT 0,
+                    target_value BIGINT NOT NULL,
+                    UNIQUE (progress_id, goal_key),
+                    FOREIGN KEY (progress_id) REFERENCES %s(id) ON DELETE CASCADE
+                )
+                """, QUEST_PROGRESS_GOALS_TABLE, QUEST_ACITVE_PROGRESS_TABLE);
+        try (Statement statement = connection.createStatement()) {
+            statement.execute(sql);
+        }
+    }
+
+    private void dropReceiptsRewardsTable(Connection connection) throws SQLException {
+        String sql = String.format("DROP TABLE IF EXISTS %s", QUEST_RECEIPTS_REWARDS_TABLE);
+        try (Statement statement = connection.createStatement()) {
+            statement.execute(sql);
+            QuestLog.info(plugin, "Dropped old rewards table (if existed): %s", QUEST_RECEIPTS_REWARDS_TABLE);
+        }
+    }
+
+    public CompletableFuture<Void> saveUserDataAsync(QuestUserData userData) {
+        return CompletableFuture.runAsync(() -> {
+            try (Connection connection = getConnection()) {
+                connection.setAutoCommit(false);
+                try {
+                    ensureUserExists(connection, userData);
+                    saveCompletedQuests(connection, userData);
+                    saveActiveProgress(connection, userData);
+
+                    connection.commit();
+                    QuestLog.debug(plugin.getName(), "User data saved successfully for UUID: %s", userData.uuid());
+                } catch (SQLException e) {
+                    connection.rollback();
+                    QuestLog.error(plugin, "Failed to save user data, transaction rolled back: %s", e.getMessage());
+                    throw new RuntimeException(e);
+                }
+            } catch (SQLException e) {
+                QuestLog.error(plugin, "Failed to save user data for UUID %s: %s", userData.uuid(), e.getMessage());
+                e.printStackTrace();
+                throw new RuntimeException(e);
+            }
+        });
+    }
+
+    @Override
+    public void saveUserData(QuestUserData userData) {
+        saveUserDataAsync(userData).join();
+    }
+
+    private void ensureUserExists(Connection connection, QuestUserData userData) throws SQLException {
+        String sql = String.format("""
+            INSERT INTO %s (uuid, subject_kind)
+            VALUES (?, ?)
+            ON DUPLICATE KEY UPDATE subject_kind = VALUES(subject_kind)
+        """, QUEST_USERS_TABLE);
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, userData.uuid().toString());
+            statement.setString(2, userData.subjectKind().name());
+            statement.executeUpdate();
+        }
+    }
+
+    private QuestSubjectKind loadSubjectKind(Connection connection, UUID uuid) throws SQLException {
+        String sql = String.format("SELECT subject_kind FROM %s WHERE uuid = ?", QUEST_USERS_TABLE);
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, uuid.toString());
+            try (ResultSet rs = statement.executeQuery()) {
+                if (rs.next()) {
+                    String raw = rs.getString("subject_kind");
+                    if (raw != null && !raw.isEmpty()) {
+                        try {
+                            return QuestSubjectKind.valueOf(raw);
+                        } catch (IllegalArgumentException ignored) {
+                            return QuestSubjectKind.PLAYER;
+                        }
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            // Older schema without column — treat as player.
+            return QuestSubjectKind.PLAYER;
+        }
+        return QuestSubjectKind.PLAYER;
+    }
+
+    private void saveCompletedQuests(Connection connection, QuestUserData userData) throws SQLException {
+        String deleteSql = String.format("DELETE FROM %s WHERE user_uuid = ?", QUEST_COMPLETED_TABLE);
+        try (PreparedStatement statement = connection.prepareStatement(deleteSql)) {
+            statement.setString(1, userData.uuid().toString());
+            statement.executeUpdate();
+        }
+
+        String insertSql = String.format("INSERT INTO %s (user_uuid, quest_key) VALUES (?, ?)", QUEST_COMPLETED_TABLE);
+        try (PreparedStatement statement = connection.prepareStatement(insertSql)) {
+            for (BaseQuest quest : userData.completeQuests()) {
+                statement.setString(1, userData.uuid().toString());
+                statement.setString(2, quest.questUniqueKey().getKey());
+                statement.addBatch();
+            }
+            statement.executeBatch();
+        }
+    }
+
+    private void saveActiveProgress(Connection connection, QuestUserData userData) throws SQLException {
+        String deleteProgressSql = String.format("DELETE FROM %s WHERE user_uuid = ?", QUEST_ACITVE_PROGRESS_TABLE);
+        try (PreparedStatement statement = connection.prepareStatement(deleteProgressSql)) {
+            statement.setString(1, userData.uuid().toString());
+            int deleted = statement.executeUpdate();
+            QuestLog.debug(plugin.getName(), "Deleted %d old progress records for user %s", deleted, userData.uuid());
+        }
+
+        String insertProgressSql = String.format("""
+                INSERT INTO %s (user_uuid, quest_key, objective_key, objective_type)
+                VALUES (?, ?, ?, ?)
+                """, QUEST_ACITVE_PROGRESS_TABLE);
+        String insertGoalSql = String.format("""
+            INSERT INTO %s (progress_id, goal_key, current_value, target_value)
+            VALUES (?, ?, ?, ?)
+            ON DUPLICATE KEY UPDATE
+                current_value = VALUES(current_value),
+                target_value = VALUES(target_value)
+            """, QUEST_PROGRESS_GOALS_TABLE);
+
+        for (QuestProgress progress : userData.getActiveQuests()) {
+            try (PreparedStatement progressStmt = connection.prepareStatement(insertProgressSql, Statement.RETURN_GENERATED_KEYS)) {
+                progressStmt.setString(1, userData.uuid().toString());
+                progressStmt.setString(2, progress.quest().questUniqueKey().getKey());
+                progressStmt.setString(3, progress.objective().key());
+                progressStmt.setString(4, progress.objective().type().key());
+                progressStmt.executeUpdate();
+
+                ResultSet rs = progressStmt.getGeneratedKeys();
+                if (rs.next()) {
+                    int progressId = rs.getInt(1);
+
+                    String deleteOldGoalsSql = String.format("DELETE FROM %s WHERE progress_id = ?", QUEST_PROGRESS_GOALS_TABLE);
+                    try (PreparedStatement deleteGoalsStmt = connection.prepareStatement(deleteOldGoalsSql)) {
+                        deleteGoalsStmt.setInt(1, progressId);
+                        deleteGoalsStmt.executeUpdate();
+                    }
+
+                    try (PreparedStatement goalStmt = connection.prepareStatement(insertGoalSql)) {
+                        for (Goal goal : progress.objective().goals()) {
+                            try {
+                                goalStmt.setInt(1, progressId);
+                                goalStmt.setString(2, goal.toString());
+                                goalStmt.setLong(3, progress.getValue(goal));
+                                goalStmt.setLong(4, goal.targetValue());
+                                goalStmt.addBatch();
+                            } catch (RuntimeException exception) {
+                                QuestLog.error(plugin,
+                                        "Не удалось сохранить цель: quest=%s, objective=%s, player=%s, goal=%s: %s",
+                                        progress.quest().questUniqueKey().getKey(), progress.objective().key(),
+                                        QuestLogContext.player(userData.uuid()), goal != null ? goal.getClass().getSimpleName() : "null",
+                                        exception.getMessage());
+                            }
+                        }
+                        goalStmt.executeBatch();
+                    }
+                }
+            }
+        }
+    }
+
+    public CompletableFuture<QuestUserData> loadUserDataAsync(UUID uuid) {
+        return CompletableFuture.supplyAsync(() -> {
+            try (Connection connection = getConnection()) {
+                if (!userExists(connection, uuid)) {
+                    return new BaseQuestUserData(uuid,
+                            new ArrayList<>(),
+                            new ArrayList<>());
+                }
+
+                QuestSubjectKind subjectKind = loadSubjectKind(connection, uuid);
+                List<BaseQuest> completedQuests = loadCompletedQuests(connection, uuid);
+
+                QuestUserData userData = new BaseQuestUserData(uuid,
+                        subjectKind,
+                        completedQuests,
+                        new ArrayList<>());
+
+                List<QuestProgress> activeProgress = loadActiveProgress(connection, uuid, userData);
+                userData.addActiveQuests(activeProgress);
+
+                QuestLog.debug(plugin.getName(), "User data loaded successfully for UUID: %s", uuid);
+                return userData;
+            } catch (SQLException e) {
+                QuestLog.error(plugin, "Failed to load user data for UUID %s: %s", uuid, e.getMessage());
+                e.printStackTrace();
+                return new BaseQuestUserData(uuid,
+                        new ArrayList<>(),
+                        new ArrayList<>());
+            }
+        });
+    }
+
+    @Override
+    public QuestUserData loadUserData(UUID uuid) {
+        return loadUserDataAsync(uuid).join();
+    }
+
+    private boolean userExists(Connection connection, UUID uuid) throws SQLException {
+        String sql = String.format("SELECT 1 FROM %s WHERE uuid = ?", QUEST_USERS_TABLE);
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, uuid.toString());
+            ResultSet rs = statement.executeQuery();
+            return rs.next();
+        }
+    }
+
+    private List<BaseQuest> loadCompletedQuests(Connection connection, UUID uuid) throws SQLException {
+        List<BaseQuest> completedQuests = new ArrayList<>();
+        String sql = String.format("SELECT quest_key FROM %s WHERE user_uuid = ?", QUEST_COMPLETED_TABLE);
+
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, uuid.toString());
+            ResultSet rs = statement.executeQuery();
+
+            while (rs.next()) {
+                String questKey = rs.getString("quest_key");
+                try {
+                    BaseQuest quest = questStorage.getQuestByUniqueKeyOrThrow(questKey);
+                    completedQuests.add(quest);
+                } catch (Exception e) {
+                    QuestLog.warn(plugin, "Quest with key '%s' not found in storage, skipping", questKey);
+                }
+            }
+        }
+        return completedQuests;
+    }
+
+    private List<QuestProgress> loadActiveProgress(Connection connection, UUID uuid, QuestUserData userData) throws SQLException {
+        List<QuestProgress> progressList = new ArrayList<>();
+        String sql = String.format("""
+                SELECT id, quest_key, objective_key, objective_type
+                FROM %s
+                WHERE user_uuid = ?
+                """, QUEST_ACITVE_PROGRESS_TABLE);
+
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, uuid.toString());
+            ResultSet rs = statement.executeQuery();
+
+            while (rs.next()) {
+                int progressId = rs.getInt("id");
+                String questKey = rs.getString("quest_key");
+                String objectiveKey = rs.getString("objective_key");
+
+                try {
+                    BaseQuest quest = questStorage.getQuestByUniqueKeyOrThrow(questKey);
+                    Map<String, Long> goalProgress = loadGoalProgress(connection, progressId);
+
+                    QuestProgress progress = createQuestProgress(quest, objectiveKey, goalProgress, userData);
+                    if (progress != null) {
+                        progressList.add(progress);
+                    }
+                } catch (Exception e) {
+                    QuestLog.warn(plugin,
+                            "Не удалось загрузить прогресс: quest=%s, objective=%s, player=%s: %s",
+                            questKey, objectiveKey, QuestLogContext.player(uuid), e.getMessage());
+                }
+            }
+        }
+        return progressList;
+    }
+
+    private Map<String, Long> loadGoalProgress(Connection connection, int progressId) throws SQLException {
+        Map<String, Long> goalProgress = new HashMap<>();
+        String sql = String.format("SELECT goal_key, current_value FROM %s WHERE progress_id = ?", QUEST_PROGRESS_GOALS_TABLE);
+
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setInt(1, progressId);
+            ResultSet rs = statement.executeQuery();
+
+            while (rs.next()) {
+                String goalKey = rs.getString("goal_key");
+                long currentValue = rs.getLong("current_value");
+                goalProgress.put(goalKey, currentValue);
+            }
+        }
+        return goalProgress;
+    }
+
+    private QuestProgress createQuestProgress(BaseQuest quest, String objectiveKey,
+                                             Map<String, Long> goalProgress, QuestUserData userData) {
+        return quest.objectives().stream()
+                .filter(objective -> objective.key().equals(objectiveKey))
+                .findFirst()
+                .map(objective -> {
+                    BaseQuestProgress progress =
+                            new BaseQuestProgress(
+                                    userData, quest, objective);
+                    for (Goal goal : objective.goals()) {
+                        Long currentValue = goalProgress.get(goal.toString());
+                        if (currentValue != null && currentValue > 0) {
+                            progress.setProgressDirectly(goal, currentValue);
+                        }
+                    }
+                    return progress;
+                })
+                .orElse(null);
+    }
+
+    public CompletableFuture<Void> deleteUserDataAsync(UUID uuid) {
+        return CompletableFuture.runAsync(() -> {
+            try (Connection connection = getConnection()) {
+                String sql = String.format("DELETE FROM %s WHERE uuid = ?", QUEST_USERS_TABLE);
+                try (PreparedStatement statement = connection.prepareStatement(sql)) {
+                    statement.setString(1, uuid.toString());
+                    int rowsAffected = statement.executeUpdate();
+
+                    if (rowsAffected > 0) {
+                        QuestLog.info(plugin, "User data deleted successfully for UUID: %s", uuid);
+                    } else {
+                        QuestLog.warn(plugin, "No user data found to delete for UUID: %s", uuid);
+                    }
+                }
+            } catch (SQLException e) {
+                QuestLog.error(plugin, "Failed to delete user data for UUID %s: %s", uuid, e.getMessage());
+                e.printStackTrace();
+                throw new RuntimeException(e);
+            }
+        });
+    }
+
+    @Override
+    public void deleteUserData(UUID uuid) {
+        deleteUserDataAsync(uuid).join();
+    }
+
+    public CompletableFuture<Long> getQuestCompletionTimeAsync(UUID uuid, String questKey) {
+        return CompletableFuture.supplyAsync(() -> {
+            try (Connection connection = getConnection()) {
+                String sql = String.format("SELECT completed_at FROM %s WHERE user_uuid = ? AND quest_key = ?", QUEST_COMPLETED_TABLE);
+                try (PreparedStatement statement = connection.prepareStatement(sql)) {
+                    statement.setString(1, uuid.toString());
+                    statement.setString(2, questKey);
+                    ResultSet rs = statement.executeQuery();
+                    if (rs.next()) {
+                        Timestamp timestamp = rs.getTimestamp("completed_at");
+                        return timestamp != null ? timestamp.getTime() : 0L;
+                    }
+                }
+            } catch (SQLException e) {
+                QuestLog.error(plugin, "Failed to get quest completion time: %s", e.getMessage());
+            }
+            return 0L;
+        });
+    }
+
+    @Override
+    public long getQuestCompletionTime(UUID uuid, String questKey) {
+        try {
+            return getQuestCompletionTimeAsync(uuid, questKey).get();
+        } catch (Exception e) {
+            QuestLog.error(plugin, "Failed to get quest completion time synchronously: %s", e.getMessage());
+            return 0L;
+        }
+    }
+
+    public CompletableFuture<Void> deleteQuestDataAsync(UUID uuid, String questKey) {
+        return CompletableFuture.runAsync(() -> {
+            QuestLog.info(plugin, "Starting deleteQuestData for user %s, quest %s", uuid, questKey);
+            try (Connection connection = getConnection()) {
+                connection.setAutoCommit(false);
+                try {
+                    String deleteCompletedSql = String.format("DELETE FROM %s WHERE user_uuid = ? AND quest_key = ?", QUEST_COMPLETED_TABLE);
+                    try (PreparedStatement statement = connection.prepareStatement(deleteCompletedSql)) {
+                        statement.setString(1, uuid.toString());
+                        statement.setString(2, questKey);
+                        statement.executeUpdate();
+                    }
+
+                    String deleteProgressSql = String.format("DELETE FROM %s WHERE user_uuid = ? AND quest_key = ?", QUEST_ACITVE_PROGRESS_TABLE);
+                    try (PreparedStatement statement = connection.prepareStatement(deleteProgressSql)) {
+                        statement.setString(1, uuid.toString());
+                        statement.setString(2, questKey);
+                        statement.executeUpdate();
+                    }
+
+                    connection.commit();
+                    QuestLog.info(plugin, "Successfully committed deletion for user %s, quest %s", uuid, questKey);
+                } catch (SQLException e) {
+                    connection.rollback();
+                    QuestLog.error(plugin, "SQL error during deletion, rolled back: %s", e.getMessage());
+                    throw e;
+                }
+            } catch (SQLException e) {
+                QuestLog.error(plugin, "Failed to delete quest data: %s", e.getMessage());
+                throw new RuntimeException(e);
+            }
+        });
+    }
+
+    @Override
+    public CompletableFuture<Void> deleteQuestData(UUID uuid, String questKey) {
+        return deleteQuestDataAsync(uuid, questKey);
+    }
+
+    @Override
+    public CompletableFuture<Void> deleteQuestDataByKeys(Collection<String> questKeys) {
+        if (questKeys == null || questKeys.isEmpty()) {
+            return CompletableFuture.completedFuture(null);
+        }
+        return CompletableFuture.runAsync(() -> {
+            try (Connection connection = getConnection()) {
+                connection.setAutoCommit(false);
+                try {
+                    for (String questKey : questKeys) {
+                        if (questKey == null || questKey.isEmpty()) {
+                            continue;
+                        }
+                        String deleteCompletedSql = String.format(
+                                "DELETE FROM %s WHERE quest_key = ?", QUEST_COMPLETED_TABLE);
+                        try (PreparedStatement statement = connection.prepareStatement(deleteCompletedSql)) {
+                            statement.setString(1, questKey);
+                            statement.executeUpdate();
+                        }
+
+                        String deleteProgressSql = String.format(
+                                "DELETE FROM %s WHERE quest_key = ?", QUEST_ACITVE_PROGRESS_TABLE);
+                        try (PreparedStatement statement = connection.prepareStatement(deleteProgressSql)) {
+                            statement.setString(1, questKey);
+                            statement.executeUpdate();
+                        }
+                    }
+                    connection.commit();
+                } catch (SQLException e) {
+                    connection.rollback();
+                    throw e;
+                }
+            } catch (SQLException e) {
+                QuestLog.error(plugin, "Failed to delete quest data by keys: %s", e.getMessage());
+                throw new RuntimeException(e);
+            }
+        });
+    }
+}
